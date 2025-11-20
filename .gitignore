@@ -125,7 +125,8 @@ load_balance_results/
 # GIT INTERNAL - Git metadata
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 .git/
-.gitmodules
+# .gitmodules should NOT be ignored - it's essential for submodules
+# Commenting out: .gitmodules
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # KEEP THESE FILES - Essential project files

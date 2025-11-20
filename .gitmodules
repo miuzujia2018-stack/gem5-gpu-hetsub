@@ -1,0 +1,15 @@
+[submodule "gem5"]
+	path = gem5
+	url = https://gitee.com/miuzujia/gem5
+[submodule "gem5-gpu"]
+	path = gem5-gpu
+	url = https://gitee.com/miuzujia/gem5-gpu
+[submodule "gpgpu-sim"]
+	path = gpgpu-sim
+	url = https://gitee.com/miuzujia/gpgpu-sim
+[submodule "Graphite"]
+	path = Graphite
+	url = https://gitee.com/miuzujia/graphite
+[submodule "benchmarks"]
+	path = benchmarks
+	url = https://gitee.com/miuzujia/benchmarks
