@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVPP_MGC_PSO Performance Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .chart-container {
+            display: inline-block;
+            width: 48%;
+            margin: 1%;
+            min-height: 400px;
+        }
+        .full-width-chart {
+            width: 98%;
+            margin: 1%;
+            height: 400px;
+        }
+        canvas {
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MVPP_MGC_PSO Routing Algorithm Performance Analysis</h1>
+        
+        <!-- Latency Comparison Chart -->
+        <div class="chart-container">
+            <canvas id="latencyChart"></canvas>
+        </div>
+        
+        <!-- Power Consumption Chart -->
+        <div class="chart-container">
+            <canvas id="powerChart"></canvas>
+        </div>
+        
+        <!-- Multi-objective Optimization Radar Chart -->
+        <div class="full-width-chart">
+            <canvas id="radarChart"></canvas>
+        </div>
+        
+        <!-- Convergence Behavior Chart -->
+        <div class="full-width-chart">
+            <canvas id="convergenceChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Latency Comparison Chart
+        const latencyCtx = document.getElementById('latencyChart').getContext('2d');
+        new Chart(latencyCtx, {
+            type: 'line',
+            data: {
+                labels: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
+                datasets: [{
+                    label: 'XY Routing',
+                    data: [18, 25, 35, 52, 78, 110],
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    tension: 0.4
+                }, {
+                    label: 'Odd-Even',
+                    data: [16, 22, 30, 42, 62, 88],
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    tension: 0.4
+                }, {
+                    label: 'MVPP_MGC_PSO',
+                    data: [12, 17, 23, 35, 52, 75],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Average Latency vs Injection Rate',
+                        font: { size: 16 }
+                    },
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Injection Rate (flits/cycle/node)'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Average Latency (cycles)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Power Consumption Chart
+        const powerCtx = document.getElementById('powerChart').getContext('2d');
+        new Chart(powerCtx, {
+            type: 'bar',
+            data: {
+                labels: ['PARSEC', 'SPLASH-2', 'Rodinia', 'Synthetic'],
+                datasets: [{
+                    label: 'Traditional Routing',
+                    data: [2.8, 3.1, 2.9, 3.3],
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    borderWidth: 1
+                }, {
+                    label: 'MVPP_MGC_PSO',
+                    data: [2.1, 2.4, 2.2, 2.5],
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgb(75, 192, 192)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Power Consumption Comparison',
+                        font: { size: 16 }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Power Consumption (W)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Multi-objective Optimization Radar Chart
+        const radarCtx = document.getElementById('radarChart').getContext('2d');
+        new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ['Latency', 'Power Efficiency', 'Reliability', 'Load Balance', 'Congestion Control', 'QoS'],
+                datasets: [{
+                    label: 'Traditional Routing',
+                    data: [60, 50, 40, 43, 47, 53],
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    pointBackgroundColor: 'rgb(255, 99, 132)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(255, 99, 132)'
+                }, {
+                    label: 'MVPP_MGC_PSO',
+                    data: [90, 85, 87, 93, 89, 86],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    pointBackgroundColor: 'rgb(75, 192, 192)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(75, 192, 192)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Multi-Objective Performance Comparison (Normalized to 100)',
+                        font: { size: 16 }
+                    }
+                },
+                elements: {
+                    line: {
+                        borderWidth: 3
+                    }
+                },
+                scales: {
+                    r: {
+                        angleLines: {
+                            display: true
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                }
+            }
+        });
+
+        // Convergence Behavior Chart
+        const convergenceCtx = document.getElementById('convergenceChart').getContext('2d');
+        new Chart(convergenceCtx, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: 51}, (_, i) => i),
+                datasets: [{
+                    label: 'CPU Swarm',
+                    data: [1000, 900, 750, 620, 500, 420, 350, 310, 280, 260, 250, 240, 235, 230, 225, 222, 220, 219, 218, 217.5, 217, 
+                           216.8, 216.6, 216.5, 216.4, 216.3, 216.2, 216.1, 216, 215.9, 215.8, 215.7, 215.6, 215.5, 215.4, 215.3,
+                           215.2, 215.1, 215, 214.9, 214.8, 214.7, 214.6, 214.5, 214.4, 214.3, 214.2, 214.1, 214, 213.9, 213.8],
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    tension: 0.4,
+                    borderWidth: 2
+                }, {
+                    label: 'GPU Swarm',
+                    data: [950, 850, 700, 580, 480, 410, 380, 340, 320, 300, 290, 280, 275, 270, 265, 262, 260, 259, 258, 257.5, 257,
+                           256.8, 256.6, 256.5, 256.4, 256.3, 256.2, 256.1, 256, 255.9, 255.8, 255.7, 255.6, 255.5, 255.4, 255.3,
+                           255.2, 255.1, 255, 254.9, 254.8, 254.7, 254.6, 254.5, 254.4, 254.3, 254.2, 254.1, 254, 253.9, 253.8],
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    tension: 0.4,
+                    borderWidth: 2
+                }, {
+                    label: 'Memory Swarm',
+                    data: [900, 800, 650, 520, 450, 380, 320, 280, 260, 240, 230, 220, 215, 210, 205, 202, 200, 199, 198, 197.5, 197,
+                           196.8, 196.6, 196.5, 196.4, 196.3, 196.2, 196.1, 196, 195.9, 195.8, 195.7, 195.6, 195.5, 195.4, 195.3,
+                           195.2, 195.1, 195, 194.9, 194.8, 194.7, 194.6, 194.5, 194.4, 194.3, 194.2, 194.1, 194, 193.9, 193.8],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    tension: 0.4,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'PSO Convergence Behavior Across Different Swarms',
+                        font: { size: 16 }
+                    },
+                    annotation: {
+                        annotations: {
+                            line1: {
+                                type: 'line',
+                                yMin: 300,
+                                yMax: 300,
+                                borderColor: 'rgb(255, 159, 64)',
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                label: {
+                                    enabled: true,
+                                    content: 'Convergence Threshold',
+                                    position: 'end'
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Iteration'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Fitness Value'
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

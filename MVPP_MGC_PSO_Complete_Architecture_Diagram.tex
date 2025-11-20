@@ -1,0 +1,155 @@
+\documentclass[tikz,border=10pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,calc,fit,backgrounds}
+
+\begin{document}
+
+\begin{tikzpicture}[
+    node distance=1cm and 1.5cm,
+    % 定义样式
+    input/.style={rectangle, draw=blue!60, fill=blue!10, thick, minimum width=2.5cm, minimum height=0.8cm, rounded corners=3pt},
+    process/.style={rectangle, draw=green!60, fill=green!10, thick, minimum width=2.5cm, minimum height=0.8cm, rounded corners=3pt},
+    decision/.style={diamond, draw=orange!60, fill=orange!10, thick, minimum width=2cm, minimum height=1.2cm, aspect=1.8},
+    algorithm/.style={rectangle, draw=purple!60, fill=purple!10, thick, minimum width=2.5cm, minimum height=0.8cm, rounded corners=3pt},
+    output/.style={rectangle, draw=red!60, fill=red!10, thick, minimum width=2.5cm, minimum height=0.8cm, rounded corners=3pt},
+    component/.style={rectangle, draw=gray!60, fill=gray!10, thick, minimum width=3cm, minimum height=1.5cm, rounded corners=5pt},
+    arrow/.style={->, >=stealth, thick}
+]
+
+% 标题
+\node[align=center, font=\Large\bfseries] at (0, 12) {MVPP\_MGC\_PSO路由算法完整实现机制};
+
+% 第1层：输入处理
+\node[input] (packet_input) at (-6, 10.5) {\scriptsize 数据包输入\\Incoming Packet};
+\node[process] (packet_particle) at (-2, 10.5) {\scriptsize PacketParticle创建\\4D空间映射};
+\node[algorithm] (group_assign) at (2, 10.5) {\scriptsize 多群体分类(MGC)\\CPU/GPU/Memory};
+
+% 第2层：四层决策框架
+\node[algorithm] (collab_layer) at (-6, 8.5) {\scriptsize 协作路由层\\Collaborative};
+\node[decision] (global_layer) at (-2, 8.5) {\scriptsize 全局图\\指导层};
+\node[algorithm] (pso_layer) at (2, 8.5) {\scriptsize PSO\\算法层};
+\node[output] (table_layer) at (6, 8.5) {\scriptsize 表路由层\\Fallback};
+
+% 第3层：PSO核心流程
+\node[process] (pso_init) at (-8, 6.5) {\scriptsize 粒子初始化};
+\node[process] (fitness_calc) at (-4, 6.5) {\scriptsize 适应度计算};
+\node[process] (velocity_update) at (0, 6.5) {\scriptsize 速度更新};
+\node[process] (position_update) at (4, 6.5) {\scriptsize 位置更新};
+\node[process] (swarm_collab) at (8, 6.5) {\scriptsize 群体协作};
+
+% 第4层：支持组件
+\node[component] (global_graph) at (-6, 4) {
+    \begin{minipage}{2.5cm}
+        \centering
+        \scriptsize \textbf{全局图组件}\\
+        \scriptsize GlobalGraph\\[2pt]
+        \scriptsize • 16节点网格\\
+        \scriptsize • 48条链路\\
+        \scriptsize • 状态监控
+    \end{minipage}
+};
+
+\node[component] (pso_component) at (0, 4) {
+    \begin{minipage}{2.5cm}
+        \centering
+        \scriptsize \textbf{PSO算法组件}\\
+        \scriptsize PSOAlgorithm\\[2pt]
+        \scriptsize • 粒子进化\\
+        \scriptsize • 适应度评估\\
+        \scriptsize • 收敛判断
+    \end{minipage}
+};
+
+\node[component] (swarm_manager) at (6, 4) {
+    \begin{minipage}{2.5cm}
+        \centering
+        \scriptsize \textbf{群体管理器}\\
+        \scriptsize SwarmManager\\[2pt]
+        \scriptsize • 多群体协作\\
+        \scriptsize • 知识共享\\
+        \scriptsize • 粒子迁移
+    \end{minipage}
+};
+
+% 第5层：多目标优化
+\node[algorithm, minimum width=10cm] (multi_objective) at (0, 2) {
+    \scriptsize \textbf{多目标适应度函数:} F(x) = α₁·延迟 + α₂·功耗 + α₃·拥塞 + α₄·负载均衡 + α₅·可靠性 + α₆·QoS
+};
+
+% 第6层：输出结果
+\node[output] (next_hop) at (0, 0.5) {\scriptsize 下一跳决策\\Next-hop Decision};
+
+% 性能指标框
+\node[component, minimum width=4cm] (performance) at (8, 1.5) {
+    \begin{minipage}{3.5cm}
+        \centering
+        \scriptsize \textbf{性能提升}\\[2pt]
+        \scriptsize • 延迟降低: 33.3\%\\
+        \scriptsize • 功耗节省: 23.6\%\\
+        \scriptsize • 吞吐量提升: 14.7\%
+    \end{minipage}
+};
+
+% 绘制箭头连接
+% 主流程箭头
+\draw[arrow] (packet_input) -- (packet_particle);
+\draw[arrow] (packet_particle) -- (group_assign);
+\draw[arrow] (group_assign) -- (pso_layer);
+
+% 决策层之间的连接
+\draw[arrow] (collab_layer) -- (global_layer);
+\draw[arrow] (global_layer) -- (pso_layer);
+\draw[arrow] (pso_layer) -- (table_layer);
+
+% 从群体分配到决策层
+\draw[arrow] (group_assign) to[out=-135,in=90] (collab_layer);
+
+% PSO核心流程连接
+\draw[arrow] (pso_init) -- (fitness_calc);
+\draw[arrow] (fitness_calc) -- (velocity_update);
+\draw[arrow] (velocity_update) -- (position_update);
+\draw[arrow] (position_update) -- (swarm_collab);
+
+% PSO层到核心流程
+\draw[arrow] (pso_layer) -- (velocity_update);
+
+% 支持组件到PSO
+\draw[arrow] (global_graph.north) to[out=60,in=-120] (global_layer.south);
+\draw[arrow] (pso_component.north) -- (pso_layer.south);
+\draw[arrow] (swarm_manager.north) to[out=120,in=-60] (pso_layer.south);
+
+% 到多目标函数
+\draw[arrow] (pso_component) -- (multi_objective);
+
+% 到最终输出
+\draw[arrow] (multi_objective) -- (next_hop);
+
+% PSO循环箭头
+\draw[arrow, dashed] (swarm_collab) to[out=180,in=0,looseness=2] (pso_init);
+
+% 添加循环标签
+\node[font=\scriptsize, rotate=0] at (-0.5, 5.5) {PSO迭代循环};
+
+% 添加层次标签
+\node[font=\scriptsize, color=blue] at (-9, 10.5) {输入层};
+\node[font=\scriptsize, color=orange] at (-9, 8.5) {决策层};
+\node[font=\scriptsize, color=green] at (-9, 6.5) {算法层};
+\node[font=\scriptsize, color=gray] at (-9, 4) {组件层};
+\node[font=\scriptsize, color=purple] at (-9, 2) {优化层};
+\node[font=\scriptsize, color=red] at (-9, 0.5) {输出层};
+
+% 添加背景框
+\begin{scope}[on background layer]
+    % 决策层背景
+    \node[draw=orange!30, fill=orange!5, rounded corners=10pt, fit=(collab_layer)(table_layer)] {};
+    
+    % PSO核心流程背景
+    \node[draw=green!30, fill=green!5, rounded corners=10pt, fit=(pso_init)(swarm_collab)] {};
+    
+    % 支持组件背景
+    \node[draw=gray!30, fill=gray!5, rounded corners=10pt, fit=(global_graph)(swarm_manager)] {};
+\end{scope}
+
+\end{tikzpicture}
+
+\end{document}

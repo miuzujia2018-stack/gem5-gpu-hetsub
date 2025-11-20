@@ -1,0 +1,135 @@
+\section{MVPP\_MGC\_PSO路由算法设计}
+
+本节详细阐述MVPP\_MGC\_PSO路由算法的设计原理与实现机制。该算法将多车辆路径规划（Multi-Vehicle Path Planning）中的粒子群优化思想映射到片上网络的路由决策问题，通过多群组聚类（Multi-Group Clustering）组织异构数据包，并利用群体间协作实现全局优化的路由选择。
+
+\subsection{全局网络建模}
+
+MVPP\_MGC\_PSO算法首先构建网络的全局拓扑图$G = (V, E)$，其中$V$表示路由器节点集合，$E$表示互连链路集合。对于4$\times$4二维网格NoC架构，节点总数$|V| = 16$，双向链路总数$|E| = 48$。每个节点$v_i \in V$包含以下状态属性：节点ID $\text{id}_i \in [0, 15]$，网格坐标$(x_i, y_i) \in [0, 3] \times [0, 3]$，拥塞水平$C_i \in [0, 1]$，处理负载$L_i \in [0, 1]$，以及缓冲区利用率$B_i \in [0, 1]$。节点类型$\tau_i \in \{\text{CPU}, \text{GPU}, \text{Memory}, \text{Cache}, \text{IO}\}$标识处理单元的功能角色。每条链路$e_{ij} \in E$连接节点$v_i$与$v_j$，其状态由权重$w_{ij}$、拥塞度$\xi_{ij}$、利用率$u_{ij}$、带宽$bw_{ij}$、延迟$d_{ij}$和可靠性$r_{ij}$等多维属性共同描述。全局图通过周期性更新机制动态跟踪网络状态，为路由决策提供实时的拓扑信息与拥塞感知。
+
+给定源节点$s$和目标节点$t$，路径$P_{st} = \{v_s, v_{i_1}, v_{i_2}, \ldots, v_{i_k}, v_t\}$的多目标性能由延迟、拥塞、功耗、可靠性和负载均衡等指标综合评估。路径总延迟计算为
+\begin{equation}
+D(P_{st}) = \sum_{e \in P_{st}} d_e + \sum_{v \in P_{st}} q_v
+\end{equation}
+其中$d_e$为链路延迟，$q_v$为节点排队延迟。路径拥塞代价定义为
+\begin{equation}
+\Xi(P_{st}) = \sum_{v \in P_{st}} C_v^2 + \sum_{e \in P_{st}} \xi_e \cdot u_e
+\end{equation}
+采用平方项惩罚高拥塞节点，链路项同时考虑拥塞度与利用率的乘积效应。路径功耗消耗建模为
+\begin{equation}
+E(P_{st}) = \sum_{e \in P_{st}} E_{\text{link}}(e) + \sum_{v \in P_{st}} E_{\text{router}}(v, u_v)
+\end{equation}
+其中链路功耗$E_{\text{link}}(e)$与传输距离相关，路由器功耗$E_{\text{router}}(v, u_v)$受节点利用率$u_v$影响呈非线性增长。路径可靠性由串联系统模型计算为
+\begin{equation}
+R(P_{st}) = \prod_{v \in P_{st}} r_v \cdot \prod_{e \in P_{st}} r_e
+\end{equation}
+反映路径上所有组件的联合可靠性。负载均衡影响通过路径引入的负载方差衡量，定义为
+\begin{equation}
+\Delta L(P_{st}) = \sum_{v \in P_{st}} (L_v - \bar{L})^2
+\end{equation}
+其中$\bar{L}$为全局平均负载。
+
+\subsection{数据包粒子表示与群体组织}
+
+MVPP\_MGC\_PSO算法将每个路由中的数据包建模为粒子群优化空间中的粒子，通过粒子的位置向量编码路由偏好，速度向量表征路由策略的演化方向。每个数据包粒子$p_k$由其唯一标识$\text{id}_k$、源节点$s_k$、目标节点$t_k$以及处理单元类型$\tau_k \in \{\text{CPU}, \text{GPU}, \text{Memory}, \text{Cache}\}$等基本属性定义。粒子的核心PSO属性包括位置向量$\mathbf{x}_k \in \mathbb{R}^4$、速度向量$\mathbf{v}_k \in \mathbb{R}^4$以及个体最优位置$\mathbf{x}_k^{\text{pbest}} \in \mathbb{R}^4$。位置向量的四个维度分别编码路径探索偏好、拥塞规避倾向、功耗敏感度和负载均衡倾向，每个维度取值归一化至$[0, 1]$区间。粒子还维护个体最优适应度$f_k^{\text{pbest}}$、当前适应度$f_k^{\text{curr}}$、跳数计数$h_k$、累积延迟$\delta_k$、功耗消耗$\epsilon_k$、拥塞代价$\chi_k$以及负载均衡影响$\lambda_k$等性能指标。为支持自适应优化，粒子携带动态调整的惯性权重$w_k \in [0.4, 0.9]$、认知系数$c_{1,k} \in [1.0, 2.5]$和社会系数$c_{2,k} \in [1.0, 2.5]$。适应度历史$\{f_k^{(t-9)}, \ldots, f_k^{(t)}\}$记录最近10次迭代的适应度值，用于计算收敛速率$\rho_k$和触发参数自适应。粒子的路由目标类型$\Theta_k \in \{\text{LatencyMin}, \text{PowerMin}, \text{BalancedQoS}\}$决定适应度函数中各目标的权重配置。
+
+为有效处理异构CPU-GPU系统中多样化的通信模式，MVPP\_MGC\_PSO采用多群组聚类策略将数据包粒子组织为专用群体。群体$\mathcal{S}_j$由群组ID $\text{gid}_j$、群组类型$\text{type}_j$、处理单元类型$\tau_j$和成员节点集合$\mathcal{N}_j \subset V$定义。每个群体维护活跃粒子列表$\mathcal{P}_j = \{p_1, p_2, \ldots, p_{n_j}\}$，其中$n_j \leq N_{\max}$为群体粒子数量上限。群体最优位置$\mathbf{x}_j^{\text{gbest}} \in \mathbb{R}^4$和群体最优适应度$f_j^{\text{gbest}}$记录群体内部发现的最佳路由方案。群体特化参数包括路由目标配置$\Omega_j$、多样性因子$\delta_j \in [0, 1]$控制群体的探索-开发平衡，以及通信频率$\phi_j$决定与其他群体的知识共享周期。群体性能统计指标包含平均适应度$\bar{f}_j$、最优适应度改进率$\Delta f_j$和收敛计数$\kappa_j$。粒子分配机制根据数据包的源节点和目标节点类型，将其归入对应的专用群体。例如，CPU核心之间的一致性流量归入CPU群体$\mathcal{S}_{\text{CPU}}$，GPU流处理器到存储控制器的内存访问归入GPU群体$\mathcal{S}_{\text{GPU}}$，跨处理单元类型的通信归入混合群体$\mathcal{S}_{\text{mixed}}$。这种类型感知的群体划分使得每个群体能够针对特定通信模式优化路由策略，同时通过群体间协作机制实现全局性能提升。
+
+\subsection{粒子群优化算法}
+
+MVPP\_MGC\_PSO的核心在于利用粒子群优化算法动态探索最优路由路径。对于群体$\mathcal{S}_j$中的每个粒子$p_k$，在第$t$次迭代中，其速度更新遵循经典PSO公式：
+\begin{equation}
+\mathbf{v}_k^{(t+1)} = w_k^{(t)} \mathbf{v}_k^{(t)} + c_{1,k} r_1 (\mathbf{x}_k^{\text{pbest}} - \mathbf{x}_k^{(t)}) + c_{2,k} r_2 (\mathbf{x}_j^{\text{gbest}} - \mathbf{x}_k^{(t)})
+\end{equation}
+其中$r_1, r_2 \sim \mathcal{U}(0, 1)$为均匀分布的随机数，惯性项$w_k^{(t)} \mathbf{v}_k^{(t)}$维持粒子的搜索动量，认知项$c_{1,k} r_1 (\mathbf{x}_k^{\text{pbest}} - \mathbf{x}_k^{(t)})$引导粒子向个体历史最优方向移动，社会项$c_{2,k} r_2 (\mathbf{x}_j^{\text{gbest}} - \mathbf{x}_k^{(t)})$驱使粒子向群体最优方向收敛。惯性权重$w_k^{(t)}$采用自适应策略，根据网络拥塞状态和粒子收敛进度动态调整。当检测到高拥塞状态（$\bar{C} > 0.7$）时，增大$w_k$促进全局探索以发现替代路径；当粒子接近收敛（$|\Delta f_k| < \epsilon$）时，减小$w_k$增强局部搜索精度。认知系数$c_{1,k}$和社会系数$c_{2,k}$通过周期性正弦调整维持探索与开发的动态平衡，具体表达为
+\begin{equation}
+c_{1,k}^{(t)} = 1.5 + 0.5 \sin(0.1 \cdot \kappa_k), \quad c_{2,k}^{(t)} = 1.5 + 0.5 \cos(0.1 \cdot \kappa_k)
+\end{equation}
+其中$\kappa_k$为粒子的适应计数，正弦周期性变化使得粒子在迭代过程中交替侧重个体经验与群体知识。
+
+位置更新采用标准PSO规则，结合边界约束和速度限制：
+\begin{equation}
+\mathbf{x}_k^{(t+1)} = \mathbf{x}_k^{(t)} + \mathbf{v}_k^{(t+1)}, \quad \mathbf{x}_k^{(t+1)} \in [0, 1]^4
+\end{equation}
+速度向量每个维度限制在$[-v_{\max}, v_{\max}]$范围内，其中$v_{\max} = 0.2$以防止粒子过度震荡。位置向量超出$[0, 1]$边界时采用反弹策略，即$x_{k,i} = \max(0, \min(1, x_{k,i}))$，速度分量翻转$v_{k,i} \leftarrow -v_{k,i}$。更新后的位置向量$\mathbf{x}_k^{(t+1)}$通过解码机制映射为具体的路由决策。位置向量的第一维度$x_{k,1}$控制XY路由与YX路由的偏好，第二维度$x_{k,2}$决定是否绕行高拥塞路由器，第三维度$x_{k,3}$影响功耗敏感的链路选择，第四维度$x_{k,4}$调整负载均衡策略的激进程度。路由端口选择通过加权评分机制实现，每个候选输出端口$o_m$的评分计算为
+\begin{equation}
+S(o_m) = x_{k,1} \cdot S_{\text{hop}}(o_m) + x_{k,2} \cdot S_{\text{cong}}(o_m) + x_{k,3} \cdot S_{\text{power}}(o_m) + x_{k,4} \cdot S_{\text{load}}(o_m)
+\end{equation}
+其中$S_{\text{hop}}(o_m)$为端口的跳数最小化得分，$S_{\text{cong}}(o_m)$为拥塞规避得分（与下游路由器拥塞度负相关），$S_{\text{power}}(o_m)$为功耗最小化得分，$S_{\text{load}}(o_m)$为负载均衡得分。选择得分最高的端口$o^* = \arg\max_{o_m} S(o_m)$作为数据包的路由方向。
+
+\subsection{多目标适应度函数}
+
+适应度函数综合评估路由方案在延迟、功耗、拥塞、负载均衡、可靠性和QoS等多个维度的性能。对于数据包粒子$p_k$，其当前路由方案对应的路径$P_{s_k t_k}$，适应度值计算为多目标加权和：
+\begin{equation}
+f_k = \alpha_1 \hat{D}_k + \alpha_2 \hat{E}_k + \alpha_3 \hat{\Xi}_k + \alpha_4 \hat{\Delta L}_k + \alpha_5 (1 - \hat{R}_k) + \alpha_6 \hat{Q}_k
+\end{equation}
+其中$\hat{D}_k, \hat{E}_k, \hat{\Xi}_k, \hat{\Delta L}_k, \hat{R}_k, \hat{Q}_k$分别为归一化的延迟、功耗、拥塞、负载方差、可靠性和QoS指标，权重向量$\boldsymbol{\alpha} = [\alpha_1, \alpha_2, \alpha_3, \alpha_4, \alpha_5, \alpha_6]$满足$\sum_{i=1}^6 \alpha_i = 1$。归一化采用最小-最大缩放，例如延迟归一化为
+\begin{equation}
+\hat{D}_k = \frac{D_k - D_{\min}}{D_{\max} - D_{\min}}
+\end{equation}
+其中$D_{\min}, D_{\max}$分别为历史观测的最小和最大延迟值。权重向量根据处理单元类型和网络状态自适应调整。对于CPU一致性流量，延迟权重$\alpha_1$较高（如0.35），功耗权重$\alpha_2$较低（如0.15）；对于GPU内存访问，拥塞权重$\alpha_3$增大（如0.30）以应对突发流量，负载均衡权重$\alpha_4$提升（如0.25）以分散批量请求。网络拥塞度$\bar{C}$超过阈值（如0.6）时，动态增加拥塞权重$\alpha_3$，减少延迟权重$\alpha_1$，促进拥塞规避而非盲目追求最短路径。适应度函数的设计确保粒子演化能够平衡多个性能目标，避免单一指标优化导致的次优解。
+
+粒子在每次迭代后评估其适应度$f_k^{(t+1)}$，若优于个体最优适应度$f_k^{\text{pbest}}$，则更新个体最优位置：
+\begin{equation}
+\text{if } f_k^{(t+1)} < f_k^{\text{pbest}}, \text{ then } \mathbf{x}_k^{\text{pbest}} \leftarrow \mathbf{x}_k^{(t+1)}, \; f_k^{\text{pbest}} \leftarrow f_k^{(t+1)}
+\end{equation}
+群体最优位置通过群体内所有粒子的比较确定：
+\begin{equation}
+\mathbf{x}_j^{\text{gbest}} = \arg\min_{p_k \in \mathcal{P}_j} f_k^{\text{pbest}}, \quad f_j^{\text{gbest}} = \min_{p_k \in \mathcal{P}_j} f_k^{\text{pbest}}
+\end{equation}
+群体最优位置在每个迭代周期末更新，为下一轮粒子速度更新提供社会学习目标。
+
+\subsection{多群体协作机制}
+
+为充分利用不同群体在各自专用通信模式下积累的路由知识，MVPP\_MGC\_PSO引入多群体协作机制，通过群体间的知识共享、粒子迁移和全局最优同步实现跨群体优化。协作机制以固定间隔$\Delta T_{\text{collab}}$（如每1000周期）触发，执行以下三个主要步骤。
+
+首先，知识共享阶段通过群体间的最优位置交换传播高质量路由方案。对于任意两个群体$\mathcal{S}_i$和$\mathcal{S}_j$，若其群体最优适应度差异显著（$|f_i^{\text{gbest}} - f_j^{\text{gbest}}| > \theta_{\text{share}}$，$\theta_{\text{share}} = 0.1$），则性能较优的群体向较差群体传递其最优位置信息。接收群体中的部分粒子（比例$\gamma_{\text{share}} = 0.2$）以概率$p_{\text{accept}}$接受外部知识，更新其速度向量加入新的社会学习项：
+\begin{equation}
+\mathbf{v}_k^{(t+1)} \leftarrow \mathbf{v}_k^{(t+1)} + c_3 r_3 (\mathbf{x}_i^{\text{gbest}} - \mathbf{x}_k^{(t)})
+\end{equation}
+其中$c_3 = 0.5$为跨群体学习系数，$r_3 \sim \mathcal{U}(0, 1)$为随机因子。接受概率$p_{\text{accept}}$与群体性能差距正相关，性能较差的群体更倾向于学习高性能群体的经验，计算为
+\begin{equation}
+p_{\text{accept}} = \sigma\left(\beta \frac{f_j^{\text{gbest}} - f_i^{\text{gbest}}}{f_j^{\text{gbest}}}\right)
+\end{equation}
+其中$\sigma(\cdot)$为Sigmoid函数，$\beta = 5$为敏感度系数。知识共享加速了群体收敛速度，特别是在工作负载相位转换时，高性能群体的策略能够快速传播至受影响的低性能群体。
+
+其次，粒子迁移机制动态调整粒子在群体间的分配，将低性能群体中表现不佳的粒子迁移至更合适的群体。对于群体$\mathcal{S}_j$中适应度长期停滞（连续$M = 10$次迭代无改进）的粒子$p_k$，计算其与其他群体的兼容性：
+\begin{equation}
+\mathcal{C}(p_k, \mathcal{S}_m) = \exp\left(-\frac{\|\mathbf{x}_k^{\text{pbest}} - \mathbf{x}_m^{\text{gbest}}\|^2}{2\sigma_{\text{compat}}^2}\right)
+\end{equation}
+其中$\sigma_{\text{compat}} = 0.3$为兼容性带宽参数，欧氏距离越小表示粒子与目标群体的路由偏好越接近。选择兼容性最高的群体$\mathcal{S}^* = \arg\max_m \mathcal{C}(p_k, \mathcal{S}_m)$作为迁移目标，若$\mathcal{C}(p_k, \mathcal{S}^*) > \mathcal{C}_{\min}$（$\mathcal{C}_{\min} = 0.6$）且目标群体未满（$n_m < N_{\max}$），则执行迁移：粒子$p_k$从$\mathcal{P}_j$移除并加入$\mathcal{P}_m$，同时重新初始化其速度向量以适应新群体的搜索环境。迁移后粒子继承其个体最优位置，但速度向量重置为
+\begin{equation}
+\mathbf{v}_k \leftarrow 0.5 \mathbf{v}_k + 0.5 \mathcal{N}(\mathbf{0}, \sigma_{\text{init}}^2 \mathbf{I})
+\end{equation}
+其中$\sigma_{\text{init}} = 0.1$，高斯噪声引入探索性，避免迁移粒子直接陷入目标群体的局部最优。粒子迁移机制使得群体结构动态适应网络流量变化，例如当GPU工作负载激增时，部分CPU群体粒子可自动迁移至GPU群体增强其搜索能力。
+
+第三，全局最优同步维护跨处理单元类型的全局最优路由方案。系统维护全局最优位置$\mathbf{x}^{\text{gBest}} \in \mathbb{R}^4$和全局最优适应度$f^{\text{gBest}}$，在每次协作周期中更新为所有群体中的最优解：
+\begin{equation}
+\mathbf{x}^{\text{gBest}} = \arg\min_{j} f_j^{\text{gbest}}, \quad f^{\text{gBest}} = \min_{j} f_j^{\text{gbest}}
+\end{equation}
+全局最优信息周期性（每$\Delta T_{\text{sync}} = 20$次迭代）广播至所有群体，各群体中的探索者角色粒子（占比$\eta_{\text{explorer}} = 0.3$）在速度更新时额外考虑全局最优的引导：
+\begin{equation}
+\mathbf{v}_k^{(t+1)} \leftarrow \mathbf{v}_k^{(t+1)} + c_4 r_4 (\mathbf{x}^{\text{gBest}} - \mathbf{x}_k^{(t)})
+\end{equation}
+其中$c_4 = 0.3$为全局学习系数，$r_4 \sim \mathcal{U}(0, 1)$。全局最优同步确保局部群体不会过度特化而忽略全局更优的路由策略，同时保持群体多样性以应对不同通信模式的异构需求。协作机制通过知识共享、粒子迁移和全局同步的有机结合，使多群体系统既保持各群体针对特定流量的专用优化能力，又实现全局路由性能的协同提升。
+
+\subsection{路由决策与实时适应}
+
+MVPP\_MGC\_PSO的路由决策采用分层协作策略，优先尝试群体协作路由，失败时回退至PSO路由，最后采用基于表的传统路由作为保障。当路由器接收到源节点$s$到目标节点$t$的路由请求时，首先根据数据包类型$\tau$确定所属群体$\mathcal{S}_j$。协作路由机制查询群体最优位置$\mathbf{x}_j^{\text{gbest}}$，若该位置在最近$\Delta T_{\text{valid}}$周期内更新且适应度$f_j^{\text{gbest}} < f_{\text{threshold}}$（如$f_{\text{threshold}} = 0.5$），则采用群体最优位置解码的路由策略。具体地，计算各候选输出端口的评分
+\begin{equation}
+S(o_m) = \sum_{i=1}^4 x_{j,i}^{\text{gbest}} \cdot S_i(o_m)
+\end{equation}
+选择评分最高的端口$o^* = \arg\max_m S(o_m)$转发数据包。若群体最优方案不可用（例如群体尚未初始化或最优解已过期），则启动PSO迭代优化。PSO路由为当前数据包创建临时粒子，执行最多$T_{\max} = 50$次迭代或达到收敛阈值$\epsilon_{\text{conv}} = 0.01$时终止。迭代过程中粒子根据公式\eqref{eq:velocity_update}和\eqref{eq:position_update}更新速度与位置，每次迭代后评估适应度并更新个体与群体最优。PSO迭代终止后，采用最终群体最优位置$\mathbf{x}_j^{\text{gbest}}$解码路由端口。若PSO路由因时间预算限制（超过$\Delta T_{\text{budget}}$周期）或搜索空间退化无法收敛，则回退至基于表的静态路由，采用预计算的最短路径或dimension-ordered routing策略保障数据包的基本可达性。
+
+实时适应机制通过动态调整PSO参数和群体配置响应网络状态变化。网络拥塞度$\bar{C}$每$\Delta T_{\text{monitor}} = 100$周期更新一次，计算所有节点拥塞水平的平均值。当检测到拥塞度剧增（$\Delta \bar{C} > 0.2$）时，触发拥塞响应模式：所有群体的惯性权重$w_k$提升至0.9促进全局探索，拥塞项权重$\alpha_3$增加至0.4，同时降低延迟权重$\alpha_1$至0.2，优先寻找拥塞规避路径。当拥塞缓解（$\bar{C} < 0.4$）时，参数恢复正常配置，惯性权重降至0.6，权重向量回归均衡分布。工作负载相位转换检测通过流量模式聚类实现，系统维护最近$W = 1000$个数据包的源-目的对分布直方图$H^{(t)}$，与历史窗口$H^{(t-W)}$的KL散度计算为
+\begin{equation}
+D_{\text{KL}}(H^{(t)} \| H^{(t-W)}) = \sum_{(s,t)} H^{(t)}(s,t) \log \frac{H^{(t)}(s,t)}{H^{(t-W)}(s,t)}
+\end{equation}
+当$D_{\text{KL}} > D_{\text{threshold}}$（如$D_{\text{threshold}} = 0.5$）时，判定发生相位转换。系统响应包括：重新初始化所有粒子的位置向量为随机值加当前群体最优的加权和$\mathbf{x}_k \leftarrow 0.3 \mathbf{x}_k + 0.7 \mathbf{x}_j^{\text{gbest}} + \mathcal{N}(\mathbf{0}, 0.05^2 \mathbf{I})$，保留部分历史知识同时引入足够探索性；清空适应度历史缓冲区，重置收敛计数器；触发一次强制的群体协作周期，加速新相位下的知识传播。这种热启动策略相比完全随机重初始化可减少约40\%的收敛时间。实时适应机制确保MVPP\_MGC\_PSO在动态变化的异构工作负载下保持路由性能的稳健性。
+
+\subsection{收敛性与终止条件}
+
+PSO迭代过程通过多重终止条件平衡优化质量与计算开销。首先，达到最大迭代次数$T_{\max}$时强制终止，防止过度计算延迟数据包转发。其次，适应度收敛判定：当群体最优适应度连续$K = 5$次迭代的改进量小于阈值$\epsilon_{\text{conv}}$，即
+\begin{equation}
+|f_j^{\text{gbest},(t)} - f_j^{\text{gbest},(t-K)}| < \epsilon_{\text{conv}}
+\end{equation}
+时认为群体已收敛，提前终止迭代。第三，时间预算约束：PSO迭代开始时记录时间戳$T_{\text{start}}$，每次迭代后检查已消耗时间$\Delta T = T_{\text{curr}} - T_{\text{start}}$，若$\Delta T > \Delta T_{\text{budget}}$则立即终止，采用当前最优解。时间预算根据网络负载动态调整，高负载时$\Delta T_{\text{budget}}$缩短至10周期保证低延迟，低负载时放宽至50周期允许更充分的优化。第四，质量阈值终止：若在迭代过程中发现适应度$f_j^{\text{gbest}} < f_{\text{quality}}$的高质量解（$f_{\text{quality}} = 0.3$），则提前终止迭代直接采用该解，避免无谓的计算开销。这些分层终止条件确保MVPP\_MGC\_PSO在实时性要求与路由质量之间取得最优折衷，在高拥塞场景下快速响应，在低负载场景下充分优化。

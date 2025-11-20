@@ -1,0 +1,185 @@
+# ============================================================================
+# gem5-gpu-bak Project .gitignore
+# ============================================================================
+# This file excludes unnecessary files while keeping essential project files
+#
+# Strategy:
+# - Exclude: Large files, build artifacts, logs, temporary files
+# - Include: Configuration, scripts, documentation, small result files
+# ============================================================================
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# SUBMODULES - Managed separately (already pushed to individual repos)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# These will be added as git submodules, not direct files
+gem5/
+gem5-gpu/
+gpgpu-sim/
+Graphite/
+benchmarks/
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# BUILD ARTIFACTS - Exclude all build outputs
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*.o
+*.so
+*.a
+*.pyc
+*.pyo
+__pycache__/
+*.class
+*.jar
+*.exe
+*.dll
+*.dylib
+
+#  Compiled binaries
+gem5.opt
+gem5.debug
+gem5.fast
+
+# CUDA/PTX temporary files
+_ptx*
+*.ptx
+
+# Empty placeholder files
+.cc
+.hh
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# LOG FILES - Exclude all logs (can be regenerated)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*.log
+*.txt.bak
+build_logs/
+m5out/
+
+# Specific large log files
+gem5_build.log
+*_debug.log
+remote_build_*.log
+sync_build_*.log
+test_*.log
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# TEMPORARY FILES - System and editor temporary files
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+.vscode/
+.idea/
+*.code-workspace
+.claude/
+.cursor/
+.vercel/
+.fuse_hidden*
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# BACKUP FILES - Exclude backup files
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*.bak
+*.backup
+*_backup
+*.old
+chat.md.backup
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# LARGE DATA FILES - Exclude large data/result files
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# CSV files larger than a few MB (can be regenerated)
+comprehensive_*.csv
+stats_*.csv
+results_*.csv
+
+# Performance log CSV files
+Stage*_Router*_performance_log.csv
+*_performance_log.csv
+
+# Load balancing results (can be regenerated)
+load_balance_results/
+
+# LaTeX intermediate files
+*.aux
+*.nav
+*.out
+*.snm
+*.toc
+*.vrb
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# LARGE PDF FILES - Exclude research papers (optional)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Uncomment if you don't want to push large PDFs
+# ALPHA.pdf
+# *.pdf
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# GIT INTERNAL - Git metadata
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+.git/
+.gitmodules
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# KEEP THESE FILES - Essential project files
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# The following are INCLUDED (negation patterns)
+
+# Shell scripts - Build and test automation
+!*.sh
+
+# Documentation - Project documentation
+!*.md
+!README*
+!CLAUDE.md
+!*_README.md
+
+# Python scripts - Analysis and generation tools
+!*.py
+
+# Configuration files
+!*.yaml
+!*.yml
+!*.json
+!*.conf
+!*.cfg
+
+# Text files - Small reference files
+!*.txt
+# But exclude large text files
+comparison_report.txt
+running-gem5-gpu-output.txt
+
+# Reports - Small PDF reports (exclude large papers above)
+!reports/
+!*Report.pdf
+!MVPP_MGC_PSO_Evaluation_Metrics_Report.pdf
+
+# Images - Documentation images
+!images/
+
+# Manuscript - Research manuscript
+!manuscript/
+
+# Source code snippets (if any at root level)
+!*.c
+!*.cpp
+!*.h
+!*.hpp
+!*.cu
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# SPECIAL CASES - Custom exclusions
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Path planning reference (keep if small)
+!mvpp_mgc_pso_path_planning.cpp
+
+# Chat logs (optional - exclude if too large)
+chat.md
