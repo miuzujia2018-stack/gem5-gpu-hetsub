@@ -6,10 +6,17 @@
 # 功能：自动完成代码同步、编译和测试的完整流程
 # 作者：自动化脚本系统
 # 日期：2025-11-04
+# 更新：2025-12-18 - 添加全终端输出日志功能
 ################################################################################
 
 # 获取脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# 创建主日志文件
+LOG_DIR="${SCRIPT_DIR}/build_logs"
+mkdir -p "${LOG_DIR}"
+TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+MASTER_LOG="${LOG_DIR}/master_log_${TIMESTAMP}.log"
 
 # 颜色输出
 RED='\033[0;31m'
@@ -221,10 +228,27 @@ main() {
     log_info "总耗时: ${duration} 秒 ($(($duration / 60)) 分钟)"
     echo ""
     log_info "日志文件位置: ${SCRIPT_DIR}/build_logs/"
+    log_info "主日志文件: ${MASTER_LOG}"
+    log_info "完整终端输出已保存到主日志文件"
     echo ""
 
     exit 0
 }
 
-# 执行主函数
-main "$@"
+# 执行主函数并捕获所有终端输出
+# 使用 tee 同时输出到终端和日志文件，同时捕获 stdout 和 stderr
+{
+    echo "========================================"
+    echo "📝 主日志文件: ${MASTER_LOG}"
+    echo "📝 所有终端输出将同时保存到此文件"
+    echo "========================================"
+    echo ""
+
+    main "$@" 2>&1
+} | tee "${MASTER_LOG}"
+
+# 保存主函数的退出码
+EXIT_CODE=${PIPESTATUS[0]}
+
+# 使用主函数的退出码退出脚本
+exit ${EXIT_CODE}

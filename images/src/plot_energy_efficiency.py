@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-Energy Efficiency Analysis Visualization for Mixed Workload
-Generates a grouped bar chart showing normalized energy efficiency for different routing methods
+Energy Efficiency Analysis Visualization
+Generates a grouped bar chart comparing energy efficiency across 6 routing methods
 """
 
 import os
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # Non-interactive backend for headless environments
 import matplotlib.pyplot as plt
 import numpy as np
-from color_config import COLORS, EDGE_COLOR, EDGE_WIDTH, GRID_STYLE, LEGEND_STYLE, LABELS
 
 # Configure matplotlib for better appearance
 plt.rcParams['font.family'] = 'serif'
@@ -17,11 +18,24 @@ plt.rcParams['axes.labelsize'] = 22
 plt.rcParams['axes.titlesize'] = 24
 plt.rcParams['xtick.labelsize'] = 18
 plt.rcParams['ytick.labelsize'] = 18
-plt.rcParams['legend.fontsize'] = 18
+plt.rcParams['legend.fontsize'] = 16
 plt.rcParams['figure.titlesize'] = 24
 
+# Color scheme for 6 methods
+COLORS_6 = {
+    'Baseline': '#2C5F8D',   # Deep blue
+    'VIX': '#E8A838',        # Golden yellow
+    'DIP': '#48A14D',        # Green
+    'O1TURN': '#C1666B',     # Coral red
+    'OSCAR': '#9B59B6',      # Purple
+    'ALPHA': '#E74C3C',      # Bright red
+}
+
+EDGE_COLOR = '#2F2F2F'
+EDGE_WIDTH = 0.7
+
 def plot_energy_efficiency():
-    """Generate energy efficiency analysis bar chart from CSV data"""
+    """Generate energy efficiency comparison bar chart"""
 
     # Define paths
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -34,72 +48,80 @@ def plot_energy_efficiency():
     df = pd.read_csv(data_file)
 
     # Extract data
-    workloads = df['workload'].values
-    baseline = df['baseline'].values
-    tb_tbp = df['tb-tbp'].values
-    proposed = df['proposed'].values
+    benchmarks = df['Benchmark'].values
+    baseline = df['Baseline'].values
+    vix = df['VIX'].values
+    dip = df['DIP'].values
+    o1turn = df['O1TURN'].values
+    oscar = df['OSCAR'].values
+    alpha = df['ALPHA'].values
 
     # Set up the bar chart
-    x = np.arange(len(workloads)) * 1.3  # Label locations with increased spacing
-    width = 0.22  # Width of bars (narrower for better spacing)
+    x = np.arange(len(benchmarks)) * 1.8  # Label locations
+    width = 0.24  # Width of bars
 
-    fig, ax = plt.subplots(figsize=(18, 9))
+    fig, ax = plt.subplots(figsize=(24, 9))
 
-    # Create bars with different colors
-    bars1 = ax.bar(x - width, baseline, width, label=LABELS['baseline'],
-                   color=COLORS['baseline'], edgecolor=EDGE_COLOR, linewidth=EDGE_WIDTH)
-    bars2 = ax.bar(x, tb_tbp, width, label=LABELS['tb_tbp'],
-                   color=COLORS['tb_tbp'], edgecolor=EDGE_COLOR, linewidth=EDGE_WIDTH)
-    bars3 = ax.bar(x + width, proposed, width, label=LABELS['proposed'],
-                   color=COLORS['proposed'], edgecolor=EDGE_COLOR, linewidth=EDGE_WIDTH)
+    # Create bars
+    bars1 = ax.bar(x - 2.5*width, baseline, width, label='Baseline',
+                   color=COLORS_6['Baseline'], edgecolor=EDGE_COLOR, linewidth=EDGE_WIDTH)
+    bars2 = ax.bar(x - 1.5*width, vix, width, label='VIX',
+                   color=COLORS_6['VIX'], edgecolor=EDGE_COLOR, linewidth=EDGE_WIDTH)
+    bars3 = ax.bar(x - 0.5*width, dip, width, label='DIP',
+                   color=COLORS_6['DIP'], edgecolor=EDGE_COLOR, linewidth=EDGE_WIDTH)
+    bars4 = ax.bar(x + 0.5*width, o1turn, width, label='O1TURN',
+                   color=COLORS_6['O1TURN'], edgecolor=EDGE_COLOR, linewidth=EDGE_WIDTH)
+    bars5 = ax.bar(x + 1.5*width, oscar, width, label='OSCAR',
+                   color=COLORS_6['OSCAR'], edgecolor=EDGE_COLOR, linewidth=EDGE_WIDTH)
+    bars6 = ax.bar(x + 2.5*width, alpha, width, label='ALPHA',
+                   color=COLORS_6['ALPHA'], edgecolor=EDGE_COLOR, linewidth=EDGE_WIDTH)
 
     # Customize the plot
-    ax.set_xlabel('Mixed Workload', fontweight='bold', fontsize=22)
-    ax.set_ylabel('Energy Efficiency (Normalized)', fontweight='bold', fontsize=22)
+    ax.set_xlabel('Benchmark Applications', fontweight='bold', fontsize=22)
+    ax.set_ylabel('Normalized Energy Efficiency', fontweight='bold', fontsize=22)
     ax.set_xticks(x)
-    ax.set_xticklabels(workloads, rotation=0, ha='center')
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=3, **LEGEND_STYLE)
+    ax.set_xticklabels(benchmarks, rotation=0, ha='center')
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.12), ncol=6, frameon=False)
 
     # Add grid for better readability
-    ax.yaxis.grid(True, **GRID_STYLE, zorder=0)
+    ax.yaxis.grid(True, linestyle='--', alpha=0.25, color='#888888', linewidth=0.8, zorder=0)
     ax.set_axisbelow(True)
 
-    # Set y-axis limits (energy efficiency goes up, so higher is better)
-    ax.set_ylim(0, 1.5)
+    # Set y-axis limits
+    ax.set_ylim(0, 1.4)
 
-    # Adjust layout to prevent label cutoff
+    # Adjust layout
     plt.tight_layout(pad=2.0)
 
     # Save figure
-    output_file = os.path.join(output_dir, 'energy_efficiency_mixed_workload.png')
+    output_file = os.path.join(output_dir, 'energy_efficiency.png')
     plt.savefig(output_file, dpi=300, bbox_inches='tight', pad_inches=0.3)
     print(f"Figure saved to: {output_file}")
 
-    # Also save as PDF for publication quality
-    output_pdf = os.path.join(output_dir, 'energy_efficiency_mixed_workload.pdf')
+    # Also save as PDF
+    output_pdf = os.path.join(output_dir, 'energy_efficiency.pdf')
     plt.savefig(output_pdf, bbox_inches='tight', pad_inches=0.3)
     print(f"PDF saved to: {output_pdf}")
 
-    plt.show()
+    plt.close()
 
-    # Print statistics summary
-    print("\n" + "="*60)
-    print("ENERGY EFFICIENCY ANALYSIS SUMMARY")
-    print("="*60)
-    print(f"{'Workload':<20} {'Baseline':<12} {'TB-TBP':<12} {'Proposed':<12}")
-    print("-"*60)
-    for i, wl in enumerate(workloads):
-        print(f"{wl:<20} {baseline[i]:<12.2f} {tb_tbp[i]:<12.2f} {proposed[i]:<12.2f}")
-    print("="*60)
+    # Print statistics
+    print("\n" + "="*100)
+    print("ENERGY EFFICIENCY ANALYSIS")
+    print("="*100)
+    print(f"{'Benchmark':<12} {'Baseline':<10} {'VIX':<10} {'DIP':<10} {'O1TURN':<10} {'OSCAR':<10} {'ALPHA':<10}")
+    print("-"*100)
+    for i, bm in enumerate(benchmarks):
+        print(f"{bm:<12} {baseline[i]:<10.2f} {vix[i]:<10.2f} {dip[i]:<10.2f} {o1turn[i]:<10.2f} {oscar[i]:<10.2f} {alpha[i]:<10.2f}")
+    print("="*100)
 
-    # Calculate improvement percentages (higher is better for efficiency)
-    avg_improvement_baseline = (proposed[-1] - 1) * 100
-    avg_improvement_tbtbp = ((proposed[-1] - tb_tbp[-1]) / tb_tbp[-1]) * 100
-
-    print(f"\nAverage Improvement:")
-    print(f"  Proposed vs Baseline: {avg_improvement_baseline:.1f}% increase")
-    print(f"  Proposed vs TB-TBP:   {avg_improvement_tbtbp:.1f}% increase")
-    print("="*60)
+    # Calculate average improvement
+    avg_alpha = np.mean(alpha[:-1])  # Exclude G.M. row
+    avg_baseline = np.mean(baseline[:-1])
+    improvement = ((avg_alpha - avg_baseline) / avg_baseline) * 100
+    print(f"\nAverage ALPHA Improvement over Baseline: {improvement:.1f}%")
+    print(f"Geometric Mean ALPHA/Baseline Ratio: {alpha[-1]:.2f}")
+    print("="*100)
 
 if __name__ == '__main__':
     plot_energy_efficiency()
