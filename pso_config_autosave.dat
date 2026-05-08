@@ -1,8 +1,8 @@
 # PSO Configuration Save File
-# Generated at tick: 752890000
-current_stage=Stage1
+# Generated at tick: 1543677500
+current_stage=DynamicAdaptive
 particle_count=10
-max_iterations=50
+max_iterations=30
 inertia_weight=0.7
 cognitive_coeff=1.5
 social_coeff=1.5

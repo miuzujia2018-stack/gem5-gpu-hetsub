@@ -36,16 +36,15 @@ MAIN_REPO_URL="https://gitee.com/miuzujia/gem5-gpu-bak"
 
 # Submodule mapping: LOCAL_DIR|REMOTE_URL|REPO_NAME
 declare -a SUBMODULES=(
-    "/home/siat/gem5-gpu-bak/gem5|https://gitee.com/miuzujia/gem5|gem5"
-    "/home/siat/gem5-gpu-bak/gem5-gpu|https://gitee.com/miuzujia/gem5-gpu|gem5-gpu"
-    "/home/siat/gem5-gpu-bak/gpgpu-sim|https://gitee.com/miuzujia/gpgpu-sim|gpgpu-sim"
-    "/home/siat/gem5-gpu-bak/Graphite|https://gitee.com/miuzujia/graphite|Graphite"
-    "/home/siat/gem5-gpu-bak/benchmarks|https://gitee.com/miuzujia/benchmarks|benchmarks"
-    "/home/siat/gem5-gpu-bak/mvpp_manuscript|https://gitee.com/miuzujia/mvpp_manuscript|mvpp_manuscript"
+    "/mnt/d/gem5-gpu-bak/gem5|https://gitee.com/miuzujia/gem5|gem5"
+    "/mnt/d/gem5-gpu-bak/gem5-gpu|https://gitee.com/miuzujia/gem5-gpu|gem5-gpu"
+    "/mnt/d/gem5-gpu-bak/gpgpu-sim|https://gitee.com/miuzujia/gpgpu-sim|gpgpu-sim"
+    "/mnt/d/gem5-gpu-bak/Graphite|https://gitee.com/miuzujia/graphite|Graphite"
+    "/mnt/d/gem5-gpu-bak/benchmarks|https://gitee.com/miuzujia/benchmarks|benchmarks"
 )
 
 # Log file
-LOG_DIR="/home/siat/gem5-gpu-bak/build_logs"
+LOG_DIR="/mnt/d/gem5-gpu-bak/build_logs"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/push_all_$(date +%Y%m%d_%H%M%S).log"
 
@@ -74,7 +73,7 @@ url_encode() {
 push_main_repo() {
     print_header "Step 1: Push Main Repository (gem5-gpu-bak)"
 
-    cd /home/siat/gem5-gpu-bak
+    cd /mnt/d/gem5-gpu-bak
 
     # Check if there are changes
     if git diff --quiet && git diff --cached --quiet; then
@@ -230,7 +229,6 @@ main() {
     echo "  • gpgpu-sim: https://gitee.com/miuzujia/gpgpu-sim"
     echo "  • Graphite: https://gitee.com/miuzujia/graphite"
     echo "  • benchmarks: https://gitee.com/miuzujia/benchmarks"
-    echo "  • mvpp_manuscript: https://gitee.com/miuzujia/mvpp_manuscript"
 
     if [ $fail_count -eq 0 ]; then
         echo ""

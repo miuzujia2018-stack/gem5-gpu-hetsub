@@ -2,30 +2,67 @@
 Academic Color Scheme Configuration
 Shared color palette for all visualization scripts
 Based on professional academic publication standards
+
+New Color Scheme (2026-01-06):
+- Baseline: #003B5C (Dark blue) - Solid line
+- OSCAR: #FF6633 (Orange) - Solid line
+- Shortcut: #F9D84B (Yellow) - Dashed line
+- FTBY: #88C649 (Green) - Solid line
+- FTYBY_PG: #0095D9 (Bright blue) - Dashed line
+- Adapt-NoC-nRL: #882D99 (Purple) - Hollow/Open
+- Adapt-NoC: #FA7B2E (Light orange) - Dashed line
 """
 
-# Academic color scheme - designed for clarity in both print and digital media
-# Colors are colorblind-friendly and professional
+# Primary color scheme for 3-column charts (Baseline, TB-TBP, Proposed)
 COLORS = {
-    'baseline': '#2C5F8D',      # Deep professional blue
-    'tb_tbp': '#C1666B',        # Muted coral red
-    'proposed': '#48A14D',      # Professional green
+    'baseline': '#003B5C',      # Baseline - Dark blue
+    'tb_tbp': '#88C649',        # FTBY - Green
+    'proposed': '#FA7B2E',      # Adapt-NoC - Light orange
 }
 
-# Alternative academic color schemes (commented out, can be swapped)
-# Scheme 2 - Nature/Science style
-# COLORS = {
-#     'baseline': '#3E5F8A',
-#     'tb_tbp': '#C4654F',
-#     'proposed': '#5E9152',
-# }
+# Extended color scheme for 6-column charts
+COLORS_6 = {
+    'Baseline': '#003B5C',      # Baseline - Dark blue
+    'VIX': '#FF6633',           # OSCAR - Orange
+    'DIP': '#F9D84B',           # Shortcut - Yellow
+    'O1TURN': '#88C649',        # FTBY - Green
+    'OSCAR': '#0095D9',         # FTYBY_PG - Bright blue
+    'ALPHA': '#FA7B2E',         # Adapt-NoC - Light orange
+    'Proposed': '#FA7B2E',      # Adapt-NoC - Light orange (alias)
+}
 
-# Scheme 3 - Elegant grayscale-friendly
-# COLORS = {
-#     'baseline': '#4E6C8B',
-#     'tb_tbp': '#B65D5D',
-#     'proposed': '#5C9A5E',
-# }
+# Complete palette for all methods
+FULL_PALETTE = {
+    'baseline': '#003B5C',      # Baseline
+    'oscar': '#FF6633',         # OSCAR
+    'shortcut': '#F9D84B',      # Shortcut
+    'ftby': '#88C649',          # FTBY
+    'ftyby_pg': '#0095D9',      # FTYBY_PG
+    'adapt_noc_nrl': '#882D99', # Adapt-NoC-nRL
+    'adapt_noc': '#FA7B2E',     # Adapt-NoC
+}
+
+# Line styles for different methods (for line charts)
+LINE_STYLES = {
+    'baseline': '-',            # Solid
+    'oscar': '-',               # Solid
+    'shortcut': '--',           # Dashed
+    'ftby': '-',                # Solid
+    'ftyby_pg': '--',           # Dashed
+    'adapt_noc_nrl': '-',       # Solid (with hollow markers)
+    'adapt_noc': '--',          # Dashed
+}
+
+# Marker styles (for line/scatter plots)
+MARKER_STYLES = {
+    'baseline': 'o',            # Circle
+    'oscar': 's',               # Square
+    'shortcut': '^',            # Triangle up
+    'ftby': 'D',                # Diamond
+    'ftyby_pg': 'v',            # Triangle down
+    'adapt_noc_nrl': 'o',       # Hollow circle
+    'adapt_noc': 'p',           # Pentagon
+}
 
 # Edge color for bars (consistent across all figures)
 EDGE_COLOR = '#2F2F2F'  # Dark gray, almost black
@@ -58,6 +95,6 @@ FONT_CONFIG = {
 # Labels for legend
 LABELS = {
     'baseline': 'Baseline',
-    'tb_tbp': 'TB-TBP',
-    'proposed': 'Proposed',
+    'tb_tbp': 'FTBY',           # Changed from TB-TBP
+    'proposed': 'Adapt-NoC',    # Changed from Proposed
 }

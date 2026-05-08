@@ -11,6 +11,7 @@ import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend for headless environments
 import matplotlib.pyplot as plt
 import numpy as np
+from color_config import COLORS_6, EDGE_COLOR, EDGE_WIDTH
 
 # Configure matplotlib for better appearance
 plt.rcParams['font.family'] = 'serif'
@@ -21,19 +22,6 @@ plt.rcParams['xtick.labelsize'] = 18
 plt.rcParams['ytick.labelsize'] = 18
 plt.rcParams['legend.fontsize'] = 16
 plt.rcParams['figure.titlesize'] = 24
-
-# Color scheme for 6 methods
-COLORS_6 = {
-    'Baseline': '#2C5F8D',   # Deep blue
-    'VIX': '#E8A838',        # Golden yellow
-    'DIP': '#48A14D',        # Green
-    'O1TURN': '#C1666B',     # Coral red
-    'OSCAR': '#9B59B6',      # Purple
-    'ALPHA': '#E74C3C',      # Bright red
-}
-
-EDGE_COLOR = '#2F2F2F'
-EDGE_WIDTH = 0.7
 
 def plot_normalized_network_latency():
     """Generate normalized network latency comparison bar chart"""

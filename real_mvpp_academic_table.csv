@@ -1,3 +1,0 @@
-Mechanism Stage,Decision Variables,Algorithm Parameters,Performance Metrics,Power Analysis,Load Balance Index
-Collaborative Multi-Group Search,"groups=5, avg_candidates=1.3","avg_fitness=13986.09, group_distribution={1: 435, 0: 604, 4: 663, 3: 202, 2: 96}","search_events=2000, computation_time=0.0",collaborative_overhead,multi_group_fairness
-MVPP_MGC_PSO Algorithm Efficiency,"guidance_rate=0.00%, collaborative_rate=0.00%","total_decisions=0, algorithm_coverage=100%","guidance_events=0, search_events=2000",total_algorithm_overhead,overall_fairness_score

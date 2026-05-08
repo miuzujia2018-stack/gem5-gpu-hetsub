@@ -1,8 +1,0 @@
-Mechanism Stage,Decision Variables,Algorithm Parameters,Performance Metrics,Power Analysis,Load Balance Index
-Packet-Particle Creation,"position[4D]=[0.4975, 0.5025, 0.4966666666666667, 0.5033333333333333], group_count=3",initial_fitness=156.5742,packets_created=12,initialization_power=0.002µW,N/A
-Global Graph Guidance,"confidence=0.8167, next_hop_decision",use_probability=0.8167,"success_rate=0.5000, avg_timing=3.0",graph_lookup_power=0.005µW,spatial_balance_impact
-Collaborative Search,"group_count=3, avg_candidates=3.2",avg_fitness=157.4800,avg_computation_time=7.0,collaboration_overhead,inter_group_balance
-Multi-Objective Fitness,"delay=0.2542, power=0.1825, congestion=0.3350",load_balance=0.7717,total_fitness=0.5308,fitness_computation_power,fairness=0.7717
-PSO Convergence,"stagnation=3.5, particles=12.2",convergence_iteration=16.8,best_fitness=161.3325,convergence_power_cost,algorithmic_balance
-Swarm Collaboration,"collab_pairs=4.5, active_swarms=3.5",avg_benefit=0.4150,knowledge_transfer_rate,collaboration_overhead,inter_group_balance
-Performance Summary,"pso_decisions=518, traditional=178",algorithm_ratio=0.7443,avg_latency=0.2194,total_power=2.3700µW,jains_index=0.8258

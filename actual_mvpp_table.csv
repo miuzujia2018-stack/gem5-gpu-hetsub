@@ -1,3 +1,0 @@
-Mechanism Stage,Decision Variables,Algorithm Parameters,Performance Metrics,Power Analysis,Load Balance Index
-Global Graph Guidance,"confidence=1.0000, next_hop_decision",use_probability=1.0000,"success_rate=0.0000, avg_timing=0.0",graph_lookup_power=0.005µW,spatial_balance_impact
-Collaborative Search,"group_count=5, avg_candidates=1.3",avg_fitness=955.8931,avg_computation_time=0.0,collaboration_overhead,inter_group_balance
