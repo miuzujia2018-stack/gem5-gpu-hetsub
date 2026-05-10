@@ -24,13 +24,20 @@ All compilation and testing runs in Docker container **`gem5gpu-dev`** (image `m
 sudo docker start gem5gpu-dev    # if stopped
 ```
 
+### Mandatory: Build + Test After Changes
+
+**After ANY code change to flexible-pipeline/ (or other source files), you MUST run:**
+
 ```bash
-./docker_build_and_test_j64.sh    # Full: compile (-j64) + test
+./docker_build_and_test_j64.sh
 ```
 
-The script runs:
+This compiles gem5.opt (-j64) AND runs both benchmarks (backprop + kmeans). Never push or declare a task complete without a passing run. If the script fails, fix the issue and rerun before proceeding.
+
+### What the script does
+
 1. `scons build/X86_VI_hammer_GPU/gem5.opt` inside the container
-2. Benchmark tests
+2. `./run.sh both` — backprop + kmeans benchmarks
 
 ### Critical Runtime Requirements
 

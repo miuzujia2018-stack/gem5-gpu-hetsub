@@ -104,15 +104,15 @@ run_build() {
 }
 
 run_test() {
-    log_step "步骤 2/2：在 Docker 中运行 ./run.sh 测试"
+    log_step "步骤 2/2：在 Docker 中运行 backprop + kmeans 测试"
 
     sudo docker exec "${CONTAINER_NAME}" /bin/bash --noprofile --norc -c "
         set -e
         cd ${CONTAINER_PROJECT_DIR}
-        ./run.sh
+        ./run.sh both
     "
 
-    log_success "测试完成"
+    log_success "测试完成 (backprop + kmeans)"
 }
 
 main() {
