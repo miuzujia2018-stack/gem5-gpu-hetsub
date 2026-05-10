@@ -15,6 +15,7 @@ run_test() {
     local bin=$2
     local opts=$3
     local outdir=$4
+    mkdir -p "$outdir"
     echo "=== Testing: $name ==="
     "$project_dir/gem5/build/X86_VI_hammer_GPU/gem5.opt" \
       -d "$outdir" \
