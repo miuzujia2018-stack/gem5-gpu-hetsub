@@ -4,8 +4,8 @@
 # Push ALL Repositories - Main Repository + All Submodules
 # ============================================================================
 # This script pushes:
-# 1. Main repository (gem5-gpu-bak) - scripts, docs, config
-# 2. All 6 submodules (gem5, gem5-gpu, gpgpu-sim, Graphite, benchmarks, mvpp_manuscript)
+# 1. Main repository (gem5-gpu-xy) - scripts, docs, config
+# 2. All submodules to branch 'gem5-gpu-xy' (isolated from gem5-gpu-bak's master)
 # ============================================================================
 
 # Color codes
@@ -32,19 +32,20 @@ print_header() {
 # Configuration
 GITEE_USERNAME="miuzujia1995@163.com"
 GITEE_PASSWORD="456843d9586f483cd04d0b8b28ce95b7"
-MAIN_REPO_URL="https://gitee.com/miuzujia/gem5-gpu-bak"
+MAIN_REPO_URL="https://gitee.com/miuzujia/gem5-gpu-xy"
+SUB_BRANCH="gem5-gpu-xy"  # Isolated branch for submodules (not master)
 
 # Submodule mapping: LOCAL_DIR|REMOTE_URL|REPO_NAME
 declare -a SUBMODULES=(
-    "/mnt/d/gem5-gpu-bak/gem5|https://gitee.com/miuzujia/gem5|gem5"
-    "/mnt/d/gem5-gpu-bak/gem5-gpu|https://gitee.com/miuzujia/gem5-gpu|gem5-gpu"
-    "/mnt/d/gem5-gpu-bak/gpgpu-sim|https://gitee.com/miuzujia/gpgpu-sim|gpgpu-sim"
-    "/mnt/d/gem5-gpu-bak/Graphite|https://gitee.com/miuzujia/graphite|Graphite"
-    "/mnt/d/gem5-gpu-bak/benchmarks|https://gitee.com/miuzujia/benchmarks|benchmarks"
+    "/home/siat/gem5-gpu-xy/gem5|https://gitee.com/miuzujia/gem5|gem5"
+    "/home/siat/gem5-gpu-xy/gem5-gpu|https://gitee.com/miuzujia/gem5-gpu|gem5-gpu"
+    "/home/siat/gem5-gpu-xy/gpgpu-sim|https://gitee.com/miuzujia/gpgpu-sim|gpgpu-sim"
+    "/home/siat/gem5-gpu-xy/Graphite|https://gitee.com/miuzujia/graphite|Graphite"
+    "/home/siat/gem5-gpu-xy/benchmarks|https://gitee.com/miuzujia/benchmarks|benchmarks"
 )
 
 # Log file
-LOG_DIR="/mnt/d/gem5-gpu-bak/build_logs"
+LOG_DIR="/home/siat/gem5-gpu-xy/build_logs"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/push_all_$(date +%Y%m%d_%H%M%S).log"
 
@@ -71,9 +72,9 @@ url_encode() {
 
 # Function: Push main repository
 push_main_repo() {
-    print_header "Step 1: Push Main Repository (gem5-gpu-bak)"
+    print_header "Step 1: Push Main Repository (gem5-gpu-xy)"
 
-    cd /mnt/d/gem5-gpu-bak
+    cd /home/siat/gem5-gpu-xy
 
     # Check if there are changes
     if git diff --quiet && git diff --cached --quiet; then
@@ -81,7 +82,7 @@ push_main_repo() {
     else
         print_msg "$BLUE" "Adding and committing changes..."
         git add -A >> "$LOG_FILE" 2>&1
-        commit_msg="Update gem5-gpu-bak - $(date '+%Y-%m-%d %H:%M:%S')"
+        commit_msg="Update gem5-gpu-xy - $(date '+%Y-%m-%d %H:%M:%S')"
         git commit -m "$commit_msg" >> "$LOG_FILE" 2>&1 || {
             print_msg "$YELLOW" "⊘ No changes to commit"
         }
@@ -154,8 +155,18 @@ push_submodule() {
         }
     fi
 
-    # Get current branch
+    # Get current branch or create gem5-gpu-xy branch
     current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "master")
+
+    # Create/switch to gem5-gpu-xy branch for isolated submodule commits
+    if [ "$current_branch" != "$SUB_BRANCH" ]; then
+        if git show-ref --verify --quiet "refs/heads/$SUB_BRANCH"; then
+            git checkout "$SUB_BRANCH" >> "$LOG_FILE" 2>&1
+        else
+            git checkout -b "$SUB_BRANCH" >> "$LOG_FILE" 2>&1
+        fi
+        current_branch="$SUB_BRANCH"
+    fi
 
     # Push to remote
     print_msg "$BLUE" "Pushing $repo_name (branch: $current_branch)..."
@@ -223,12 +234,12 @@ main() {
 
     echo ""
     print_msg "$CYAN" "Repository URLs:"
-    echo "  Main: https://gitee.com/miuzujia/gem5-gpu-bak"
-    echo "  • gem5: https://gitee.com/miuzujia/gem5"
-    echo "  • gem5-gpu: https://gitee.com/miuzujia/gem5-gpu"
-    echo "  • gpgpu-sim: https://gitee.com/miuzujia/gpgpu-sim"
-    echo "  • Graphite: https://gitee.com/miuzujia/graphite"
-    echo "  • benchmarks: https://gitee.com/miuzujia/benchmarks"
+    echo "  Main: https://gitee.com/miuzujia/gem5-gpu-xy"
+    echo "  • gem5 (branch: $SUB_BRANCH): https://gitee.com/miuzujia/gem5"
+    echo "  • gem5-gpu (branch: $SUB_BRANCH): https://gitee.com/miuzujia/gem5-gpu"
+    echo "  • gpgpu-sim (branch: $SUB_BRANCH): https://gitee.com/miuzujia/gpgpu-sim"
+    echo "  • Graphite (branch: $SUB_BRANCH): https://gitee.com/miuzujia/graphite"
+    echo "  • benchmarks (branch: $SUB_BRANCH): https://gitee.com/miuzujia/benchmarks"
 
     if [ $fail_count -eq 0 ]; then
         echo ""
