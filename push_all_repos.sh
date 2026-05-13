@@ -72,7 +72,7 @@ url_encode() {
 
 # Function: Push main repository
 push_main_repo() {
-    print_header "Step 1: Push Main Repository (gem5-gpu-xy)"
+    print_header "Step 1: Push Main Repository (gem5-gpu-xy, branch: $SUB_BRANCH)"
 
     cd /home/siat/gem5-gpu-xy
 
@@ -89,15 +89,23 @@ push_main_repo() {
     fi
 
     # Push to remote
-    print_msg "$BLUE" "Pushing main repository..."
+    print_msg "$BLUE" "Pushing main repository (branch: $SUB_BRANCH)..."
 
     encoded_username=$(url_encode "$GITEE_USERNAME")
     encoded_password=$(url_encode "$GITEE_PASSWORD")
     auth_url=$(echo "$MAIN_REPO_URL" | sed "s|https://|https://${encoded_username}:${encoded_password}@|")
 
+    # Create/switch to gem5-gpu-xy branch for main repo
     current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "master")
+    if [ "$current_branch" != "$SUB_BRANCH" ]; then
+        if git show-ref --verify --quiet "refs/heads/$SUB_BRANCH"; then
+            git checkout "$SUB_BRANCH" >> "$LOG_FILE" 2>&1
+        else
+            git checkout -b "$SUB_BRANCH" >> "$LOG_FILE" 2>&1
+        fi
+    fi
 
-    if git push -u "$auth_url" "$current_branch" >> "$LOG_FILE" 2>&1; then
+    if git push -u "$auth_url" "$SUB_BRANCH" >> "$LOG_FILE" 2>&1; then
         print_msg "$GREEN" "✓ Main repository pushed successfully"
         return 0
     else
