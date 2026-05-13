@@ -11,7 +11,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONTAINER_NAME="gem5gpu-dev"
-CONTAINER_PROJECT_DIR="/home/siat/gem5-gpu-bak"
+CONTAINER_PROJECT_DIR="/home/siat/gem5-gpu-xy"
 JOBS=64
 
 LOG_DIR="${SCRIPT_DIR}/build_logs"

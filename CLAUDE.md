@@ -11,9 +11,9 @@ This file provides guidance to Claude Code when working in this repository.
 
 ### Primary Objective
 
-**Develop and refine the MVPP_MGC_PSO routing algorithm** (Multi-Vehicle Path Planning with Multi-Group Clustering and Particle Swarm Optimization) for the NoC (Network-on-Chip) in `gem5/src/mem/ruby/network/garnet/flexible-pipeline/`.
+**XY Dimension-Ordered Routing (DOR) baseline** for 8x8 Mesh NoC in `gem5/src/mem/ruby/network/garnet/flexible-pipeline/`. This is a cleanroom fork of gem5-gpu-bak that replaces MVPP_MGC_PSO with pure XY DOR to serve as a performance comparison baseline.
 
-Path planning concepts map to NoC routing: vehicles → packets, road networks → topology, congestion → buffer utilization.
+XY routing: route X dimension first (East/West), then Y dimension (North/South). Deterministic, deadlock-free, minimal-path.
 
 ## Build System (Docker)
 
@@ -56,7 +56,7 @@ This compiles gem5.opt (-j64) AND runs both benchmarks (backprop + kmeans). Neve
 
 ```bash
 # Compile
-cd /home/siat/gem5-gpu-bak/gem5
+cd /home/siat/gem5-gpu-xy/gem5
 export CUDAHOME=/usr/local/cuda/cuda
 scons build/X86_VI_hammer_GPU/gem5.opt --default=X86 \
     EXTRAS=../gem5-gpu/src:../gpgpu-sim/ PROTOCOL=VI_hammer GPGPU_SIM=True -j64
@@ -67,13 +67,13 @@ export PATH=/usr/local/cuda/cuda/bin:$PATH
 export LD_LIBRARY_PATH=/usr/local/cuda/cuda/lib64
 ./gem5/build/X86_VI_hammer_GPU/gem5.opt -d /tmp/test \
     gem5-gpu/configs/se_fusion.py --garnet-network=flexible \
-    -c /home/siat/gem5-gpu-bak/benchmarks/rodinia/backprop/gem5_fusion_backprop -o "16"
+    -c /home/siat/gem5-gpu-xy/benchmarks/rodinia/backprop/gem5_fusion_backprop -o "16"
 
 # Test kmeans
 ./gem5/build/X86_VI_hammer_GPU/gem5.opt -d /tmp/test \
     gem5-gpu/configs/se_fusion.py --garnet-network=flexible \
-    -c /home/siat/gem5-gpu-bak/benchmarks/rodinia/kmeans/gem5_fusion_kmeans \
-    -o "-i /home/siat/Downloads/kmeans_input.txt"
+    -c /home/siat/gem5-gpu-xy/benchmarks/rodinia/kmeans/gem5_fusion_kmeans \
+    -o "-i /home/siat/gem5-gpu-xy/kmeans_input.txt"
 ```
 
 ## Working Directory Constraints
@@ -133,21 +133,27 @@ Key constants in `Router.hh`:
 
 | File | Role |
 |------|------|
-| `Router.hh/cc` | Main router with MVPP_MGC_PSO algorithm |
-| `PSOAlgorithm.hh/cc` | Particle Swarm Optimization engine |
-| `SwarmManager.hh/cc` | Multi-swarm collaboration, packet grouping |
+| `Router.hh/cc` | Main router with XY DOR algorithm (PSO code retained but unused) |
+| `PSOAlgorithm.hh/cc` | Particle Swarm Optimization engine (unused, kept for API compat) |
+| `SwarmManager.hh/cc` | Multi-swarm collaboration (unused, kept for API compat) |
 | `PerformanceAnalyzer.hh/cc` | Performance monitoring and power statistics |
 | `NetworkUtilities.hh/cc` | Topology management and utilities |
-| `GarnetNetwork.hh/cc` | Network controller and topology |
+| `GarnetNetwork.hh/cc` | Network controller, topology, direction-to-port mapping registration |
 
 ### Routing Decision Hierarchy
 
 ```
-1. Collaborative Routing (primary)
-2. Global Graph Guidance (fallback)
-3. PSO Algorithm (fallback)
-4. Traditional Table Routing (ultimate fallback)
+1. getRouteXY() → XY Dimension-Ordered Routing (primary)
+2. Table Routing (fallback, if XY port mapping fails)
 ```
+
+### XY Direction-to-Port Mapping Architecture
+
+`getRouteXY(src, dest)` returns a logical direction (0=N, 1=E, 2=S, 3=W, -1=local), but physical output port indices are assigned by `addOutPort()` in a fixed order (external links first, then internal links sorted by dest switch ID). The `m_direction_to_port[5]` array bridges this gap:
+
+- **`GarnetNetwork::makeOutLink()`** — registers external link as direction 4 (local)
+- **`GarnetNetwork::makeInternalLink()`** — computes XY direction from `(dx, dy)` between src/dest router IDs and registers via `setDirectionPort()`
+- **`Router::getRoute()`** — calls `getRouteXY()`, maps result through `m_direction_to_port[]`, verifies port is in routing table, falls back to table scan on failure
 
 ### Coding Conventions
 
@@ -181,3 +187,46 @@ CPU Application (CUDA Runtime)
 
 Rodinia suite in `benchmarks/rodinia/`: backprop, bfs, cfd, kmeans, etc.
 Build with `make -f Makefile.gem5-fusion`.
+
+## Push Workflow (Mandatory After Successful Build+Test)
+
+**After any code change passes compilation AND benchmark tests, you MUST push before starting the next modification.** This ensures each change is versioned independently and can be rolled back cleanly.
+
+### Step 1: Document what was changed
+
+Before pushing, write a clear summary of:
+- Which files were modified
+- Why each modification was made
+- What the expected effect is (e.g., routing behavior change, bug fix)
+
+### Step 2: Run push_all_repos.sh
+
+```bash
+cd /home/siat/gem5-gpu-xy
+./push_all_repos.sh
+```
+
+This pushes:
+- **Main repo** (`gem5-gpu-xy`) → gitee `miuzujia/gem5-gpu-xy`, branch `gem5-gpu-xy`
+- **All 5 submodules** (`gem5`, `gem5-gpu`, `gpgpu-sim`, `Graphite`, `benchmarks`) → gitee, branch `gem5-gpu-xy`
+
+### Step 3: Verify
+
+Check gitee for all 6 repositories showing the latest commits on branch `gem5-gpu-xy`.
+
+### Branch isolation
+
+- `gem5-gpu-bak` uses `master` branch on gitee
+- `gem5-gpu-xy` uses `gem5-gpu-xy` branch everywhere
+- These branches are **completely independent** — pushing gem5-gpu-xy will never affect gem5-gpu-bak
+
+### Repository URLs
+
+| Repo | Gitee URL | Branch |
+|------|-----------|--------|
+| Main | `https://gitee.com/miuzujia/gem5-gpu-xy` | `gem5-gpu-xy` |
+| gem5 | `https://gitee.com/miuzujia/gem5` | `gem5-gpu-xy` |
+| gem5-gpu | `https://gitee.com/miuzujia/gem5-gpu` | `gem5-gpu-xy` |
+| gpgpu-sim | `https://gitee.com/miuzujia/gpgpu-sim` | `gem5-gpu-xy` |
+| Graphite | `https://gitee.com/miuzujia/graphite` | `gem5-gpu-xy` |
+| benchmarks | `https://gitee.com/miuzujia/benchmarks` | `gem5-gpu-xy` |
