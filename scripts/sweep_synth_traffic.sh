@@ -10,8 +10,8 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-GEM5_OPT="${PROJECT_DIR}/gem5/build/X86_Network_test/gem5.opt"
-CONFIG="${PROJECT_DIR}/gem5/configs/network/synth_traffic_8x8_flexible.py"
+GEM5_OPT="${PROJECT_DIR}/gem5/build/X86_VI_hammer_GPU/gem5.opt"
+CONFIG="${PROJECT_DIR}/gem5-gpu/configs/synth_vi_hammer.py"
 OUTBASE="${PROJECT_DIR}/m5out/synth"
 
 SIM_CYCLES=100000
