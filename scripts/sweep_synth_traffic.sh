@@ -1,7 +1,7 @@
 #!/bin/bash
 # sweep_synth_traffic.sh — Sweep injection rates for 3 traffic patterns
 #
-# Usage: ./scripts/sweep_synth_traffic.sh [--sim-cycles 100000] [--seed 42]
+# Usage: ./scripts/sweep_synth_traffic.sh [--sim-cycles 100000] [--random_seed 42]
 #
 # Output: m5out/synth/<pattern>/inj_<rate>/stats.txt for each run
 #         m5out/synth/results.csv (aggregated)
@@ -27,14 +27,14 @@ INJ_RATES=(0.01 0.02 0.05 0.08 0.10 0.12 0.15 0.18 0.20 0.25 0.30 0.40 0.50 0.70
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --sim-cycles) SIM_CYCLES="$2"; shift 2 ;;
-        --seed) SEED="$2"; shift 2 ;;
+        --random_seed) SEED="$2"; shift 2 ;;
         *) echo "Unknown: $1"; exit 1 ;;
     esac
 done
 
 echo "=== Synthetic Traffic Sweep ==="
 echo "  sim-cycles: $SIM_CYCLES"
-echo "  seed: $SEED"
+echo "  random_seed: $SEED"
 echo "  patterns: ${PATTERN_NAMES[0]}, ${PATTERN_NAMES[1]}, ${PATTERN_NAMES[2]}"
 echo "  inj rates: ${INJ_RATES[*]}"
 echo ""
@@ -52,7 +52,7 @@ for pattern in 0 1 2; do
             --synthetic="$pattern" \
             --injectionrate="$rate" \
             --sim-cycles="$SIM_CYCLES" \
-            --seed="$SEED" \
+            --random_seed="$SEED" \
             > "${outdir}/stdout.log" 2>&1
 
         echo "  done"
