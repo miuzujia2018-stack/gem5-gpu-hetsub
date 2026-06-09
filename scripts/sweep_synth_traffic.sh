@@ -10,8 +10,8 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-GEM5_OPT="${PROJECT_DIR}/gem5/build/X86_VI_hammer_GPU/gem5.opt"
-CONFIG="${PROJECT_DIR}/gem5-gpu/configs/synth_vi_hammer.py"
+GEM5_OPT="${PROJECT_DIR}/gem5/build/X86_Network_test/gem5.opt"
+CONFIG="${PROJECT_DIR}/gem5/configs/example/ruby_network_test.py"
 OUTBASE="${PROJECT_DIR}/m5out/synth"
 
 SIM_CYCLES=100000
@@ -52,6 +52,9 @@ for pattern in 0 1 2; do
             --synthetic="$pattern" \
             --injectionrate="$rate" \
             --sim-cycles="$SIM_CYCLES" \
+            --num-cpus=64 --num-dirs=64 \
+            --garnet-network=flexible \
+            --topology=Mesh --mesh-rows=8 \
             --random_seed="$SEED" \
             > "${outdir}/stdout.log" 2>&1
 
