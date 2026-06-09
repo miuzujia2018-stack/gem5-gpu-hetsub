@@ -61,6 +61,13 @@ done
 
 echo ""
 echo "=== Parsing stats to CSV ==="
-python "${SCRIPT_DIR}/parse_synth_stats.py" "${OUTBASE}"
+python3 "${SCRIPT_DIR}/parse_synth_stats.py" "${OUTBASE}"
+
 echo ""
-echo "=== Sweep complete. Results: ${OUTBASE}/results.csv ==="
+echo "=== Plotting latency/throughput curves ==="
+python3 "${SCRIPT_DIR}/plot_synth_traffic.py" "${OUTBASE}/results.csv"
+
+echo ""
+echo "=== Sweep complete ==="
+echo "  CSV: ${OUTBASE}/results.csv"
+echo "  Plots: ${OUTBASE}/latency_vs_load.png, ${OUTBASE}/throughput_vs_load.png"

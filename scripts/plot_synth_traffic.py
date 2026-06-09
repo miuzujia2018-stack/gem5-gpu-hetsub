@@ -1,6 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # plot_synth_traffic.py — Generate latency/throughput vs load curves
 
+from __future__ import print_function
 import sys, os
 import csv
 
@@ -9,7 +10,7 @@ try:
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 except ImportError:
-    print "ERROR: matplotlib not available. Install: pip install matplotlib"
+    print("ERROR: matplotlib not available. Install: pip install matplotlib")
     sys.exit(1)
 
 PATTERN_LABELS = {
@@ -57,7 +58,7 @@ def plot_latency(data, outdir):
 
     fpath = os.path.join(outdir, 'latency_vs_load.png')
     fig.savefig(fpath, dpi=150, bbox_inches='tight')
-    print "  Saved: %s" % fpath
+    print("  Saved: %s" % fpath)
     plt.close(fig)
 
 def plot_throughput(data, outdir):
@@ -81,12 +82,12 @@ def plot_throughput(data, outdir):
 
     fpath = os.path.join(outdir, 'throughput_vs_load.png')
     fig.savefig(fpath, dpi=150, bbox_inches='tight')
-    print "  Saved: %s" % fpath
+    print("  Saved: %s" % fpath)
     plt.close(fig)
 
 def main():
     if len(sys.argv) < 2:
-        print "Usage: %s <results.csv>" % sys.argv[0]
+        print("Usage: %s <results.csv>" % sys.argv[0])
         sys.exit(1)
 
     csv_path = sys.argv[1]
@@ -94,12 +95,12 @@ def main():
 
     data = load_csv(csv_path)
     if not data:
-        print "ERROR: no data in %s" % csv_path
+        print("ERROR: no data in %s" % csv_path)
         sys.exit(1)
 
     plot_latency(data, outdir)
     plot_throughput(data, outdir)
-    print "  Plotting complete."
+    print("  Plotting complete.")
 
 if __name__ == '__main__':
     main()

@@ -1,6 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # parse_synth_stats.py — Parse stats.txt from synthetic traffic runs into CSV
 
+from __future__ import print_function
 import os, sys, csv, glob
 
 FIELDS = [
@@ -15,7 +16,6 @@ def parse_stats(stats_path):
     with open(stats_path) as f:
         for line in f:
             line = line.strip()
-            # Parse key-value stats lines
             if 'system.ruby.network.average_latency ' in line and 'average_vnet' not in line and 'average_vqueue' not in line:
                 parts = line.split()
                 d['avg_latency'] = parts[1]
@@ -40,19 +40,17 @@ def main(outbase):
         rel = os.path.relpath(stats_file, outbase)
         parts = rel.split(os.sep)
         pattern_name = parts[0]
-        inj_str = parts[1]  # inj_0.10
+        inj_str = parts[1]
         inj_rate = inj_str.replace('inj_', '')
 
-        # Map pattern name to synthetic code
         pattern_map = {'uniform_random': 0, 'bit_reverse': 1, 'transpose': 2}
         synthetic = pattern_map.get(pattern_name, -1)
 
         d = parse_stats(stats_file)
         if not d:
-            print "  WARN: no data in %s" % stats_file
+            print("  WARN: no data in %s" % stats_file)
             continue
 
-        # Calculate throughput (flits per tick)
         try:
             flits = float(d.get('flits_received', 0))
             sim_ticks = float(d.get('sim_ticks', 1))
@@ -72,11 +70,10 @@ def main(outbase):
             'throughput_flits_per_tick': d.get('throughput_flits_per_tick', '0'),
         }
         results.append(row)
-        print "  %-20s inj=%5s  lat=%8s  thr=%s" % (
+        print("  %-20s inj=%5s  lat=%8s  thr=%s" % (
             row['pattern'], row['injection_rate'],
-            row['avg_latency'], row['throughput_flits_per_tick'])
+            row['avg_latency'], row['throughput_flits_per_tick']))
 
-    # Sort by pattern, then injection rate
     results.sort(key=lambda r: (r['pattern'], float(r['injection_rate'])))
 
     csv_path = os.path.join(outbase, 'results.csv')
@@ -86,11 +83,11 @@ def main(outbase):
         for row in results:
             writer.writerow(row)
 
-    print ""
-    print "  CSV written: %s (%d rows)" % (csv_path, len(results))
+    print("")
+    print("  CSV written: %s (%d rows)" % (csv_path, len(results)))
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print "Usage: %s <m5out/synth/>" % sys.argv[0]
+        print("Usage: %s <m5out/synth/>" % sys.argv[0])
         sys.exit(1)
     main(sys.argv[1])
