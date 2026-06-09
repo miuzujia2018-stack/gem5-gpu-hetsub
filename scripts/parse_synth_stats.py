@@ -13,7 +13,7 @@ FIELDS = [
 def parse_stats(stats_path):
     """Extract relevant fields from a stats.txt file."""
     d = {}
-    with open(stats_path) as f:
+    with open(stats_path, encoding='utf-8', errors='replace') as f:
         for line in f:
             line = line.strip()
             if 'system.ruby.network.average_latency ' in line and 'average_vnet' not in line and 'average_vqueue' not in line:
