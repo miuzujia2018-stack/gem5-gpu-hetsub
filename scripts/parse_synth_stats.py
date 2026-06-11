@@ -43,7 +43,7 @@ def main(outbase):
         inj_str = parts[1]
         inj_rate = inj_str.replace('inj_', '')
 
-        pattern_map = {'uniform_random': 0, 'bit_reverse': 1, 'transpose': 2}
+        pattern_map = {'uniform': 0, 'bit_reverse': 1, 'transpose': 2}
         synthetic = pattern_map.get(pattern_name, -1)
 
         d = parse_stats(stats_file)
