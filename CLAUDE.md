@@ -294,7 +294,7 @@ before the parent, and verifies every remote branch head after pushing.
 |---|---|
 | `gem5-gpu-hetsub` parent | `synthetic-traffic-three-patterns` |
 | central `gem5` | `gem5-gpu-hetsub` |
-| `gem5-gpu`, `gpgpu-sim`, `Graphite` | `gem5-gpu-xy` |
+| `gem5-gpu`, `gpgpu-sim`, `Graphite` | `gem5-gpu-hetsub` |
 | `benchmarks` | `gem5-gpu-hetsub` |
 
 The parent `gem5` gitlink therefore opens the central `gem5` repository at

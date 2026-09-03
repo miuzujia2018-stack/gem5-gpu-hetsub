@@ -42,5 +42,5 @@ last.
 |---|---|
 | `gem5-gpu-hetsub` parent | `synthetic-traffic-three-patterns` |
 | central `gem5` | `gem5-gpu-hetsub` |
-| `gem5-gpu`, `gpgpu-sim`, `Graphite` | `gem5-gpu-xy` |
+| `gem5-gpu`, `gpgpu-sim`, `Graphite` | `gem5-gpu-hetsub` |
 | `benchmarks` | `gem5-gpu-hetsub` |
