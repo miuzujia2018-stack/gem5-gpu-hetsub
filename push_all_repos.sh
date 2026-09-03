@@ -39,18 +39,18 @@ case "$PROJECT_NAME" in
         MAIN_REPO_URL="git@${GITHUB_HOST}:miuzujia2018-stack/gem5-gpu-hetsub.git"
         MAIN_PUSH_REFS=("synthetic-traffic-three-patterns")
         add_submodule gem5 "git@${GITHUB_HOST}:miuzujia2018-stack/gem5.git" gem5-gpu-hetsub gem5
-        add_submodule gem5-gpu "git@${GITHUB_HOST}:miuzujia2018-stack/gem5-gpu.git" gem5-gpu-xy gem5-gpu
-        add_submodule gpgpu-sim "git@${GITHUB_HOST}:miuzujia2018-stack/gpgpu-sim.git" gem5-gpu-xy gpgpu-sim
-        add_submodule Graphite "git@${GITHUB_HOST}:miuzujia2018-stack/graphite.git" gem5-gpu-xy Graphite
+        add_submodule gem5-gpu "git@${GITHUB_HOST}:miuzujia2018-stack/gem5-gpu.git" gem5-gpu-hetsub gem5-gpu
+        add_submodule gpgpu-sim "git@${GITHUB_HOST}:miuzujia2018-stack/gpgpu-sim.git" gem5-gpu-hetsub gpgpu-sim
+        add_submodule Graphite "git@${GITHUB_HOST}:miuzujia2018-stack/graphite.git" gem5-gpu-hetsub Graphite
         add_submodule benchmarks "git@${GITHUB_HOST}:miuzujia2018-stack/benchmarks.git" gem5-gpu-hetsub benchmarks
         ;;
     gem5-gpu-HetSub)
         MAIN_REPO_URL="git@${GITHUB_HOST}:miuzujia2018-stack/gem5-gpu-hetsub.git"
         MAIN_PUSH_REFS=("HEAD:gem5-gpu-HetSub")
         add_submodule gem5 "git@${GITHUB_HOST}:miuzujia2018-stack/gem5.git" gem5-gpu-HetSub gem5
-        add_submodule gem5-gpu "git@${GITHUB_HOST}:miuzujia2018-stack/gem5-gpu.git" gem5-gpu-xy gem5-gpu
-        add_submodule gpgpu-sim "git@${GITHUB_HOST}:miuzujia2018-stack/gpgpu-sim.git" gem5-gpu-xy gpgpu-sim
-        add_submodule Graphite "git@${GITHUB_HOST}:miuzujia2018-stack/graphite.git" gem5-gpu-xy Graphite
+        add_submodule gem5-gpu "git@${GITHUB_HOST}:miuzujia2018-stack/gem5-gpu.git" gem5-gpu-hetsub gem5-gpu
+        add_submodule gpgpu-sim "git@${GITHUB_HOST}:miuzujia2018-stack/gpgpu-sim.git" gem5-gpu-hetsub gpgpu-sim
+        add_submodule Graphite "git@${GITHUB_HOST}:miuzujia2018-stack/graphite.git" gem5-gpu-hetsub Graphite
         add_submodule benchmarks "git@${GITHUB_HOST}:miuzujia2018-stack/benchmarks.git" gem5-gpu-hetsub benchmarks
         ;;
     gem5-gpu-tbp)

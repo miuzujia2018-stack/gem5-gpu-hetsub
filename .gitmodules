@@ -5,15 +5,15 @@
 [submodule "gem5-gpu"]
 	path = gem5-gpu
 	url = git@github-miuzujia:miuzujia2018-stack/gem5-gpu.git
-	branch = gem5-gpu-xy
+	branch = gem5-gpu-hetsub
 [submodule "gpgpu-sim"]
 	path = gpgpu-sim
 	url = git@github-miuzujia:miuzujia2018-stack/gpgpu-sim.git
-	branch = gem5-gpu-xy
+	branch = gem5-gpu-hetsub
 [submodule "Graphite"]
 	path = Graphite
 	url = git@github-miuzujia:miuzujia2018-stack/graphite.git
-	branch = gem5-gpu-xy
+	branch = gem5-gpu-hetsub
 [submodule "benchmarks"]
 	path = benchmarks
 	url = git@github-miuzujia:miuzujia2018-stack/benchmarks.git
