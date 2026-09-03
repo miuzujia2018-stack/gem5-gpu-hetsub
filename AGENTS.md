@@ -28,3 +28,19 @@ Default behavior:
 - Current active task branch: `synthetic-traffic-three-patterns`
 - Synthetic traffic execution must run inside Docker container `gem5gpu-dev`
 - Host execution of `gem5/build/X86_Network_test/gem5.opt` is not a valid verification path here because the host runtime is missing `libpython2.7.so.1.0`
+
+## SSH Backup Workflow
+
+Use GitHub through the `github-miuzujia` SSH alias and
+`~/.ssh/id_ed25519_miuzujia2018_stack`; never put passwords or HTTPS
+credentials in a push script. Run `./push_all_repos.sh --check` before
+`./push_all_repos.sh`. Nested repositories are pushed first, their remote
+commit IDs are verified, parent gitlinks are updated, and the parent is pushed
+last.
+
+| Repository | Branch |
+|---|---|
+| `gem5-gpu-hetsub` parent | `gem5-gpu-HetSub` (current local task branch as source) |
+| central `gem5` | `gem5-gpu-HetSub` |
+| `gem5-gpu`, `gpgpu-sim`, `Graphite` | `gem5-gpu-xy` |
+| `benchmarks` | `gem5-gpu-hetsub` |

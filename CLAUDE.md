@@ -135,7 +135,7 @@ This compiles gem5.opt (-j64) AND runs both benchmarks (backprop + kmeans). Neve
 
 ```bash
 # Compile
-cd /home/siat/gem5-gpu-xy/gem5
+cd /home/siat/gem5-gpu-HetSub/gem5
 export CUDAHOME=/usr/local/cuda/cuda
 scons build/X86_VI_hammer_GPU/gem5.opt --default=X86 \
     EXTRAS=../gem5-gpu/src:../gpgpu-sim/ PROTOCOL=VI_hammer GPGPU_SIM=True -j64
@@ -146,13 +146,13 @@ export PATH=/usr/local/cuda/cuda/bin:$PATH
 export LD_LIBRARY_PATH=/usr/local/cuda/cuda/lib64
 ./gem5/build/X86_VI_hammer_GPU/gem5.opt -d /tmp/test \
     gem5-gpu/configs/se_fusion.py --garnet-network=flexible \
-    -c /home/siat/gem5-gpu-xy/benchmarks/rodinia/backprop/gem5_fusion_backprop -o "16"
+    -c /home/siat/gem5-gpu-HetSub/benchmarks/rodinia/backprop/gem5_fusion_backprop -o "16"
 
 # Test kmeans
 ./gem5/build/X86_VI_hammer_GPU/gem5.opt -d /tmp/test \
     gem5-gpu/configs/se_fusion.py --garnet-network=flexible \
-    -c /home/siat/gem5-gpu-xy/benchmarks/rodinia/kmeans/gem5_fusion_kmeans \
-    -o "-i /home/siat/gem5-gpu-xy/kmeans_input.txt"
+    -c /home/siat/gem5-gpu-HetSub/benchmarks/rodinia/kmeans/gem5_fusion_kmeans \
+    -o "-i /home/siat/gem5-gpu-HetSub/kmeans_input.txt"
 ```
 
 ## Working Directory Constraints
@@ -281,31 +281,22 @@ Before pushing, write a clear summary of:
 ### Step 2: Run push_all_repos.sh
 
 ```bash
-cd /home/siat/gem5-gpu-xy
+cd /home/siat/gem5-gpu-HetSub
+./push_all_repos.sh --check
 ./push_all_repos.sh
 ```
 
-This pushes:
-- **Main repo** (`gem5-gpu-xy`) → gitee `miuzujia/gem5-gpu-xy`, branch `gem5-gpu-xy`
-- **All 5 submodules** (`gem5`, `gem5-gpu`, `gpgpu-sim`, `Graphite`, `benchmarks`) → gitee, branch `gem5-gpu-xy`
+The script uses `git@github-miuzujia` with
+`~/.ssh/id_ed25519_miuzujia2018_stack`, pushes the five nested repositories
+before the parent, and verifies every remote branch head after pushing.
 
-### Step 3: Verify
+| Repository | GitHub branch |
+|---|---|
+| `gem5-gpu-hetsub` parent | `gem5-gpu-HetSub` (source: current local task branch) |
+| central `gem5` | `gem5-gpu-HetSub` |
+| `gem5-gpu`, `gpgpu-sim`, `Graphite` | `gem5-gpu-xy` |
+| `benchmarks` | `gem5-gpu-hetsub` |
 
-Check gitee for all 6 repositories showing the latest commits on branch `gem5-gpu-xy`.
-
-### Branch isolation
-
-- `gem5-gpu-bak` uses `master` branch on gitee
-- `gem5-gpu-xy` uses `gem5-gpu-xy` branch everywhere
-- These branches are **completely independent** — pushing gem5-gpu-xy will never affect gem5-gpu-bak
-
-### Repository URLs
-
-| Repo | Gitee URL | Branch |
-|------|-----------|--------|
-| Main | `https://gitee.com/miuzujia/gem5-gpu-xy` | `gem5-gpu-xy` |
-| gem5 | `https://gitee.com/miuzujia/gem5` | `gem5-gpu-xy` |
-| gem5-gpu | `https://gitee.com/miuzujia/gem5-gpu` | `gem5-gpu-xy` |
-| gpgpu-sim | `https://gitee.com/miuzujia/gpgpu-sim` | `gem5-gpu-xy` |
-| Graphite | `https://gitee.com/miuzujia/graphite` | `gem5-gpu-xy` |
-| benchmarks | `https://gitee.com/miuzujia/benchmarks` | `gem5-gpu-xy` |
+The parent `gem5` gitlink therefore opens the central `gem5` repository at
+the `gem5-gpu-HetSub` branch. HTTPS, Gitee URLs, and embedded credentials are
+not part of this workflow.
