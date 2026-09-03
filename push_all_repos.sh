@@ -30,45 +30,22 @@ print_header() {
 }
 
 # Configuration
-GITEE_USERNAME="miuzujia1995@163.com"
-GITEE_PASSWORD="456843d9586f483cd04d0b8b28ce95b7"
-MAIN_REPO_URL="https://gitee.com/miuzujia/gem5-gpu-xy"
+MAIN_REPO_URL="https://github.com/miuzujia2018-stack/gem5-gpu-xy.git"
 SUB_BRANCH="gem5-gpu-xy"  # Isolated branch for submodules (not master)
 
 # Submodule mapping: LOCAL_DIR|REMOTE_URL|REPO_NAME
 declare -a SUBMODULES=(
-    "/home/siat/gem5-gpu-xy/gem5|https://gitee.com/miuzujia/gem5|gem5"
-    "/home/siat/gem5-gpu-xy/gem5-gpu|https://gitee.com/miuzujia/gem5-gpu|gem5-gpu"
-    "/home/siat/gem5-gpu-xy/gpgpu-sim|https://gitee.com/miuzujia/gpgpu-sim|gpgpu-sim"
-    "/home/siat/gem5-gpu-xy/Graphite|https://gitee.com/miuzujia/graphite|Graphite"
-    "/home/siat/gem5-gpu-xy/benchmarks|https://gitee.com/miuzujia/benchmarks|benchmarks"
+    "/home/siat/gem5-gpu-xy/gem5|https://github.com/miuzujia2018-stack/gem5.git|gem5"
+    "/home/siat/gem5-gpu-xy/gem5-gpu|https://github.com/miuzujia2018-stack/gem5-gpu.git|gem5-gpu"
+    "/home/siat/gem5-gpu-xy/gpgpu-sim|https://github.com/miuzujia2018-stack/gpgpu-sim.git|gpgpu-sim"
+    "/home/siat/gem5-gpu-xy/Graphite|https://github.com/miuzujia2018-stack/graphite.git|Graphite"
+    "/home/siat/gem5-gpu-xy/benchmarks|https://github.com/miuzujia2018-stack/benchmarks.git|benchmarks"
 )
 
 # Log file
 LOG_DIR="/home/siat/gem5-gpu-xy/build_logs"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/push_all_$(date +%Y%m%d_%H%M%S).log"
-
-# URL encoding function
-url_encode() {
-    local string="$1"
-    local encoded=""
-    local length="${#string}"
-
-    for (( i=0; i<length; i++ )); do
-        local c="${string:i:1}"
-        case $c in
-            [a-zA-Z0-9.~_-])
-                encoded+="$c"
-                ;;
-            *)
-                encoded+=$(printf '%%%02X' "'$c")
-                ;;
-        esac
-    done
-
-    echo "$encoded"
-}
 
 # Function: Push main repository
 push_main_repo() {
@@ -91,10 +68,6 @@ push_main_repo() {
     # Push to remote
     print_msg "$BLUE" "Pushing main repository (branch: $SUB_BRANCH)..."
 
-    encoded_username=$(url_encode "$GITEE_USERNAME")
-    encoded_password=$(url_encode "$GITEE_PASSWORD")
-    auth_url=$(echo "$MAIN_REPO_URL" | sed "s|https://|https://${encoded_username}:${encoded_password}@|")
-
     # Create/switch to gem5-gpu-xy branch for main repo
     current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "master")
     if [ "$current_branch" != "$SUB_BRANCH" ]; then
@@ -105,7 +78,7 @@ push_main_repo() {
         fi
     fi
 
-    if git push -u "$auth_url" "$SUB_BRANCH" >> "$LOG_FILE" 2>&1; then
+    if git push -u "$MAIN_REPO_URL" "$SUB_BRANCH" >> "$LOG_FILE" 2>&1; then
         print_msg "$GREEN" "✓ Main repository pushed successfully"
         return 0
     else
@@ -179,11 +152,7 @@ push_submodule() {
     # Push to remote
     print_msg "$BLUE" "Pushing $repo_name (branch: $current_branch)..."
 
-    encoded_username=$(url_encode "$GITEE_USERNAME")
-    encoded_password=$(url_encode "$GITEE_PASSWORD")
-    auth_url=$(echo "$remote_url" | sed "s|https://|https://${encoded_username}:${encoded_password}@|")
-
-    if git push -u "$auth_url" "$current_branch" >> "$LOG_FILE" 2>&1; then
+    if git push -u origin "$current_branch" >> "$LOG_FILE" 2>&1; then
         print_msg "$GREEN" "✓ Successfully pushed $repo_name"
         return 0
     else
@@ -242,12 +211,12 @@ main() {
 
     echo ""
     print_msg "$CYAN" "Repository URLs:"
-    echo "  Main: https://gitee.com/miuzujia/gem5-gpu-xy"
-    echo "  • gem5 (branch: $SUB_BRANCH): https://gitee.com/miuzujia/gem5"
-    echo "  • gem5-gpu (branch: $SUB_BRANCH): https://gitee.com/miuzujia/gem5-gpu"
-    echo "  • gpgpu-sim (branch: $SUB_BRANCH): https://gitee.com/miuzujia/gpgpu-sim"
-    echo "  • Graphite (branch: $SUB_BRANCH): https://gitee.com/miuzujia/graphite"
-    echo "  • benchmarks (branch: $SUB_BRANCH): https://gitee.com/miuzujia/benchmarks"
+    echo "  Main: https://github.com/miuzujia2018-stack/gem5-gpu-xy"
+    echo "  • gem5 (branch: $SUB_BRANCH): https://github.com/miuzujia2018-stack/gem5"
+    echo "  • gem5-gpu (branch: $SUB_BRANCH): https://github.com/miuzujia2018-stack/gem5-gpu"
+    echo "  • gpgpu-sim (branch: $SUB_BRANCH): https://github.com/miuzujia2018-stack/gpgpu-sim"
+    echo "  • Graphite (branch: $SUB_BRANCH): https://github.com/miuzujia2018-stack/graphite"
+    echo "  • benchmarks (branch: $SUB_BRANCH): https://github.com/miuzujia2018-stack/benchmarks"
 
     if [ $fail_count -eq 0 ]; then
         echo ""
@@ -264,7 +233,7 @@ main() {
 usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
-    echo "Push all repositories (main + submodules) to Gitee"
+    echo "Push all repositories (main + submodules) to GitHub"
     echo ""
     echo "Options:"
     echo "  -h, --help       Show this help message"
