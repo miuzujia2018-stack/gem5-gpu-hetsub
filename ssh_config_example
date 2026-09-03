@@ -1,6 +1,13 @@
 # SSH配置文件示例
 # 将此文件复制到 ~/.ssh/config 并根据需要修改
 
+# GitHub backup alias used by push_all_repos.sh
+Host github-miuzujia
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_miuzujia2018_stack
+    IdentitiesOnly yes
+
 # 全局默认设置
 Host *
     # 保持连接活跃
@@ -136,4 +143,4 @@ Host tunnel-server
     IdentityFile ~/.ssh/tunnel_key
     LocalForward 8080 localhost:80
     LocalForward 8443 localhost:443
-    RemoteForward 3000 localhost:3000 
+    RemoteForward 3000 localhost:3000

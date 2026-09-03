@@ -5,7 +5,7 @@ export CUDAHOME=/usr/local/cuda/cuda
 export PATH=/usr/local/cuda/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export LD_LIBRARY_PATH=/usr/local/cuda/cuda/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
 
-project_dir=/home/siat/gem5-gpu-xy
+project_dir=/home/siat/gem5-gpu-hetsub
 test=${1:-backprop}
 
 cd /home/siat
