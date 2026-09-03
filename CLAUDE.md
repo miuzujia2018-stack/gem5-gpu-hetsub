@@ -15,6 +15,21 @@ This file provides guidance to Claude Code when working in this repository.
 
 XY routing: route X dimension first (East/West), then Y dimension (North/South). Deterministic, deadlock-free, minimal-path.
 
+## Dual-Agent Workflow Contract
+
+When `.ai/tasks/TASK.md` exists, treat it as the active execution spec.
+
+Execution rules:
+- Follow `.ai/tasks/TASK.md` for the goal, file scope, acceptance criteria, and test commands.
+- The task file overrides the default working-directory focus below when they conflict.
+- Write execution results to `.ai/reports/REPORT.md`.
+- Do not edit `.ai/reviews/REVIEW.md`.
+- Escalate if the task spec and repo state disagree.
+
+Verification rules:
+- Use the verification commands required by the task file.
+- The default `./docker_build_and_test_j64.sh` requirement below still applies when you change simulator source files or when the task does not define a narrower verification plan.
+
 ## Behavioral Guidelines
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.

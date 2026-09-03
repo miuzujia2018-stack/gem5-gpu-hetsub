@@ -14,20 +14,25 @@ GEM5_OPT="${PROJECT_DIR}/gem5/build/X86_Network_test/gem5.opt"
 CONFIG="${PROJECT_DIR}/gem5/configs/example/ruby_network_test.py"
 OUTBASE="${PROJECT_DIR}/m5out/synth"
 
+# Remove stale directories from previous naming conventions
+rm -rf "${OUTBASE}/uniform" 2>/dev/null || true
+
 SIM_CYCLES=100000
 SEED=42
+SKIP_POST=0
 declare -A PATTERN_NAMES
 PATTERN_NAMES[0]="uniform_random"
 PATTERN_NAMES[1]="bit_reverse"
 PATTERN_NAMES[2]="transpose"
 
 # Injection rate sweep
-INJ_RATES=(0.01 0.02 0.05 0.08 0.10 0.12 0.15 0.18 0.20 0.25 0.30 0.40 0.50 0.70 1.00)
+INJ_RATES=(0.01 0.02 0.05 0.08 0.10 0.12 0.15)
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --sim-cycles) SIM_CYCLES="$2"; shift 2 ;;
         --random_seed) SEED="$2"; shift 2 ;;
+        --skip-post) SKIP_POST=1; shift ;;
         *) echo "Unknown: $1"; exit 1 ;;
     esac
 done
@@ -62,13 +67,24 @@ for pattern in 0 1 2; do
     done
 done
 
+if [[ "$SKIP_POST" -eq 1 ]]; then
+    echo ""
+    echo "=== Sweep complete (simulation only) ==="
+    echo "  Raw stats: ${OUTBASE}/<pattern>/inj_<rate>/stats.txt"
+    exit 0
+fi
+
 echo ""
 echo "=== Parsing stats to CSV ==="
 python3 "${SCRIPT_DIR}/parse_synth_stats.py" "${OUTBASE}"
 
 echo ""
 echo "=== Plotting latency/throughput curves ==="
-python3 "${SCRIPT_DIR}/plot_synth_traffic.py" "${OUTBASE}/results.csv"
+if python3 -c "import matplotlib" 2>/dev/null; then
+    python3 "${SCRIPT_DIR}/plot_synth_traffic.py" "${OUTBASE}/results.csv"
+else
+    echo "  matplotlib not available — skipping plot (run on host after docker cp)"
+fi
 
 echo ""
 echo "=== Sweep complete ==="

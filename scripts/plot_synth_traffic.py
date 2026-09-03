@@ -33,8 +33,8 @@ def load_csv(csv_path):
             if p not in data:
                 data[p] = {'inj': [], 'lat': [], 'thr': []}
             data[p]['inj'].append(float(row['injection_rate']))
-            data[p]['lat'].append(float(row['avg_latency']))
-            data[p]['thr'].append(float(row['throughput_flits_per_tick']))
+            data[p]['lat'].append(float(row['network_latency']))
+            data[p]['thr'].append(float(row['throughput_packets_per_cycle_per_node']))
     return data
 
 def plot_latency(data, outdir):
@@ -49,7 +49,7 @@ def plot_latency(data, outdir):
                 linewidth=1.5, markersize=5)
 
     ax.set_xlabel('Injection Rate (packets/cycle/node)', fontsize=12)
-    ax.set_ylabel('Average Latency (ticks)', fontsize=12)
+    ax.set_ylabel('Network Latency (cycles)', fontsize=12)
     ax.set_title('Latency vs. Injection Load — 8x8 Mesh XY DOR', fontsize=13)
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
@@ -73,7 +73,7 @@ def plot_throughput(data, outdir):
                 linewidth=1.5, markersize=5)
 
     ax.set_xlabel('Injection Rate (packets/cycle/node)', fontsize=12)
-    ax.set_ylabel('Throughput (flits/tick)', fontsize=12)
+    ax.set_ylabel('Throughput (packets/cycle/node)', fontsize=12)
     ax.set_title('Throughput vs. Injection Load — 8x8 Mesh XY DOR', fontsize=13)
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
