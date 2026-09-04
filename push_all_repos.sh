@@ -27,10 +27,10 @@ case "$PROJECT_NAME" in
         MAIN_REPO_URL="git@${GITHUB_HOST}:miuzujia2018-stack/gem5-gpu-bak.git"
         MAIN_PUSH_REFS=("master")
         add_submodule gem5 "git@${GITHUB_HOST}:miuzujia2018-stack/gem5.git" gem5-gpu-bak gem5
-        add_submodule gem5-gpu "git@${GITHUB_HOST}:miuzujia2018-stack/gem5-gpu.git" master gem5-gpu
-        add_submodule gpgpu-sim "git@${GITHUB_HOST}:miuzujia2018-stack/gpgpu-sim.git" master gpgpu-sim
-        add_submodule Graphite "git@${GITHUB_HOST}:miuzujia2018-stack/graphite.git" master Graphite
-        add_submodule benchmarks "git@${GITHUB_HOST}:miuzujia2018-stack/benchmarks.git" master benchmarks
+        add_submodule gem5-gpu "git@${GITHUB_HOST}:miuzujia2018-stack/gem5-gpu.git" gem5-gpu-bak gem5-gpu
+        add_submodule gpgpu-sim "git@${GITHUB_HOST}:miuzujia2018-stack/gpgpu-sim.git" gem5-gpu-bak gpgpu-sim
+        add_submodule Graphite "git@${GITHUB_HOST}:miuzujia2018-stack/graphite.git" gem5-gpu-bak Graphite
+        add_submodule benchmarks "git@${GITHUB_HOST}:miuzujia2018-stack/benchmarks.git" gem5-gpu-bak benchmarks
         add_submodule manuscript "git@${GITHUB_HOST}:miuzujia2018-stack/transaction_on_sustainable_computing.git" master manuscript
         add_submodule mvpp_manuscript "git@${GITHUB_HOST}:miuzujia2018-stack/mvpp_manuscript.git" master mvpp_manuscript
         add_submodule Research-Paper-Writing-Skills "git@github.com:Master-cai/Research-Paper-Writing-Skills.git" main Research-Paper-Writing-Skills 0
@@ -48,10 +48,10 @@ case "$PROJECT_NAME" in
         MAIN_REPO_URL="git@${GITHUB_HOST}:miuzujia2018-stack/gem5-gpu-hetsub.git"
         MAIN_PUSH_REFS=("HEAD:gem5-gpu-HetSub")
         add_submodule gem5 "git@${GITHUB_HOST}:miuzujia2018-stack/gem5.git" gem5-gpu-HetSub gem5
-        add_submodule gem5-gpu "git@${GITHUB_HOST}:miuzujia2018-stack/gem5-gpu.git" gem5-gpu-hetsub gem5-gpu
-        add_submodule gpgpu-sim "git@${GITHUB_HOST}:miuzujia2018-stack/gpgpu-sim.git" gem5-gpu-hetsub gpgpu-sim
-        add_submodule Graphite "git@${GITHUB_HOST}:miuzujia2018-stack/graphite.git" gem5-gpu-hetsub Graphite
-        add_submodule benchmarks "git@${GITHUB_HOST}:miuzujia2018-stack/benchmarks.git" gem5-gpu-hetsub benchmarks
+        add_submodule gem5-gpu "git@${GITHUB_HOST}:miuzujia2018-stack/gem5-gpu.git" gem5-gpu-HetSub gem5-gpu
+        add_submodule gpgpu-sim "git@${GITHUB_HOST}:miuzujia2018-stack/gpgpu-sim.git" gem5-gpu-HetSub gpgpu-sim
+        add_submodule Graphite "git@${GITHUB_HOST}:miuzujia2018-stack/graphite.git" gem5-gpu-HetSub Graphite
+        add_submodule benchmarks "git@${GITHUB_HOST}:miuzujia2018-stack/benchmarks.git" gem5-gpu-HetSub benchmarks
         ;;
     gem5-gpu-tbp)
         MAIN_REPO_URL="git@${GITHUB_HOST}:miuzujia2018-stack/gem5-gpu-tbp.git"
