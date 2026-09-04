@@ -42,5 +42,5 @@ last.
 |---|---|
 | `gem5-gpu-hetsub` parent | `gem5-gpu-HetSub` (current local task branch as source) |
 | central `gem5` | `gem5-gpu-HetSub` |
-| `gem5-gpu`, `gpgpu-sim`, `Graphite` | `gem5-gpu-hetsub` |
-| `benchmarks` | `gem5-gpu-hetsub` |
+| `gem5-gpu`, `gpgpu-sim`, `Graphite` | `gem5-gpu-HetSub` |
+| `benchmarks` | `gem5-gpu-HetSub` |

@@ -294,8 +294,8 @@ before the parent, and verifies every remote branch head after pushing.
 |---|---|
 | `gem5-gpu-hetsub` parent | `gem5-gpu-HetSub` (source: current local task branch) |
 | central `gem5` | `gem5-gpu-HetSub` |
-| `gem5-gpu`, `gpgpu-sim`, `Graphite` | `gem5-gpu-hetsub` |
-| `benchmarks` | `gem5-gpu-hetsub` |
+| `gem5-gpu`, `gpgpu-sim`, `Graphite` | `gem5-gpu-HetSub` |
+| `benchmarks` | `gem5-gpu-HetSub` |
 
 The parent `gem5` gitlink therefore opens the central `gem5` repository at
 the `gem5-gpu-HetSub` branch. HTTPS, Gitee URLs, and embedded credentials are
