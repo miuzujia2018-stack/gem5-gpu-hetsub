@@ -43,6 +43,18 @@ class InsertionTests(unittest.TestCase):
         self.assertTrue(all(c['level'] == 1 and c['flow_bytes'] == 256 for c in links))
         self.assertEqual(insert(profile, 256, 4)[0], [])
 
+    def test_level2_only_selection(self):
+        # All level-1 inter-child flows are zero; one level-2 flow exceeds the
+        # threshold, so the only selected shortcut is a level-2 pair.
+        profile = {(10, 17): 1152}
+        links, audit = insert(profile, 128, 4)
+        self.assertEqual(links, [dict(level=2, src=10, dst=17,
+                                      flow_bytes=1152, path=[10, 9, 17])])
+        self.assertTrue(all(r['level'] == 1 and r['flow_bytes'] == 0 and
+                            r['reason'] == 'below_threshold' for r in audit if r['level'] == 1))
+        self.assertEqual([r for r in audit if r['level'] == 2 and r['reason'] == 'selected'],
+                         [dict(level=2, src=10, dst=17, flow_bytes=1152, reason='selected')])
+
     def test_invalid_path(self):
         for path in ([0, 9], [0, 1, 2, 3], [7, 8], [0, 1, 0]):
             with self.assertRaises(ValueError): resources(path)

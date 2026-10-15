@@ -13,7 +13,7 @@ failed=0
 # Use the target 2GHz clock with 1ps ticks. A 1GHz line control checks that
 # sim-cycles describes cycles independently of the tick resolution.
 # Each run checks the mandatory credential.
-for case_name in ${HETSUB_TEST_CASES:-off line mesh8 mesh7 policy policy_load independence pg_line pg_mesh line_1ghz static8 static7 static_two static_abstract line_bit_reverse mesh_bit_reverse static_transpose pilot static_pilot reject_conflict reject_nonadjacent}; do
+for case_name in ${HETSUB_TEST_CASES:-off line mesh8 mesh7 policy policy_load independence pg_line pg_mesh line_1ghz static8 static7 static_two static_abstract line_bit_reverse mesh_bit_reverse static_transpose pilot static_pilot reject_conflict reject_nonadjacent static_level2}; do
     pg_args=(); shortcut_args=()
     mode=dual; packets=4; rate=0.01; frequency=2GHz; reject=0; pattern=0; seed=42; profile=0
     case "$case_name" in
@@ -50,6 +50,10 @@ for case_name in ${HETSUB_TEST_CASES:-off line mesh8 mesh7 policy policy_load in
             mode=static; forced=-1; width=8; reject=1
             fixture="static_${case_name#reject_}"
             shortcut_args=(--hetsub-shortcuts="$ROOT/tools/hetsub/fixtures/$fixture.json")
+            ;;
+        static_level2)
+            mode=static; forced=-1; width=7; packets=16; rate=0.05; pattern=2
+            shortcut_args=(--hetsub-shortcuts="$ROOT/tools/hetsub/fixtures/static_level2.json")
             ;;
         *) echo "Unknown test case: $case_name" >&2; exit 2 ;;
     esac

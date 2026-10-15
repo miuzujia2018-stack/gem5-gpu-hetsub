@@ -141,6 +141,35 @@
 
 用户确认GPU口径后的三仓实际平台/输入/种子和测量对齐、必要重新运行、能量/存储/时序近似最终披露及逐机制审查。已有应用正确性仅覆盖当前小输入和旧16/10模型，不能代替一致平台验收。不能用当前helper或有限包测试宣称完整复现，也不以原文性能收益为通过条件。
 
+## GOAL-HS-N1 执行结果（P1 最小闭环，2026-10-15）
+
+按用户阶段表 N1-0…N1-4 执行；未重跑正式三仓应用矩阵，未为改变 HetSub 负收益调整参数。flexible-pipeline 源码无改动，`X86_Network_test` 现有构建凭据继续有效，每次运行前 verify 门禁照常执行。
+
+### N1-1 `wire MB` 语义（重分析，未重跑仿真）
+
+- 分类规则：`ext_links`、`int_links`、`het_line_links` 为物理链路；`het_relay_links` 为虚拟 relay 接入通道。
+- 重分析输出（`ok: true`）：`m5out/comparison_10c/formal_10c_v2_20261015/reanalysis_wire_classification_backprop.json` 与 `…_kmeans.json`。
+- `docs/COMPARISON_10C_RESULTS.md` 改为物理/虚拟活动分列，Jain 仅按物理链路计算；仅静态行的 Jain 相对旧口径变化，实验结论不变。
+
+### N1-2 Algorithm 2 level-2 插入（离线选择 + 实际承载）
+
+- 单元测试 `tools/hetsub/test_insertion.py::test_level2_only_selection`：profile 仅 `{(10,17): 1152}`，threshold=128、limit=4 → 唯一选中 level-2 对 (10,17)，路径 `[10,9,17]`；全部 level-1 行 `below_threshold`。5 个测试全部通过。
+- 冻结配置由离线工具从该 profile 生成：`tools/hetsub/fixtures/profile_level2.csv` → `tools/hetsub/fixtures/static_level2.json`（审计 `static_level2.csv`：仅 `2,10,17,1152,selected`）。
+- 定向运行 `static_level2`（转置 pattern，tester 10 全部 16 包目的为 17；16×72 B = 1152 B）：`m5out/hetsub_network/20261015T152707Z/static_level2`。
+  - 实际承载：relay `completed_frames = 48`（22 data + 26 control），`input_bytes = output_bytes = 1792`，`fifo_highwater = 4`（≤4），input/output flits 136/294 与消息尺寸一致；物理段 beats 1176 > 0。
+  - 守恒与排空：packets 1024 注入=接收，bytes 28608 守恒，flits 2730 注入=接收，`het_busy_resources = 0`；static 下 M 路由器零 route request / buffer write。
+  - 背压实际发生：downstream stall 202 cycles、MUX deferrals 19。
+  - 判定口径说明：48 帧 > tester 10 的 16 定向包，因为其他 tester 经 router 10 向 tile 17 的包同样满足 Algorithm 1 单调条件并共享该 relay。验收按 TASK.md 为 `completed_frames > 0` + 冻结路径 `[10,9,17]`，不要求恰好 16。首次运行按恰好 16 断言失败（`m5out/hetsub_network/20261015T151741Z` 保留为证据），断言改为 `>= 16` 后通过。
+
+### N1-3 完整有限包套件
+
+- 一次完整运行 22 项（21 项既有 + 新用例 `static_level2`）全部 PASS，exit 0，无 FAIL：输出目录 `m5out/hetsub_network/20261015T152707Z`。
+- 既有 PG、背压、旁路、pilot、非法配置拒绝用例无新增未解释缺陷；关键证据：independence 10557 并行 tile cycles / 2559 L-during-M-wake / 10990 M-during-L-full；static_transpose 492 stall + 8 deferrals；static_pilot 737 stall + 9 deferrals；reject_conflict 与 reject_nonadjacent 均被拒绝。
+
+### N1-4 关闭状态
+
+- 证据（重分析 JSON、单元测试、定向用例运行输出与 validate 结果）已写入本节；本提交包含 `tools/hetsub` 改动与 fixtures。推送并核对远端后，最终 Code Review 由用户执行；`.ai/reviews/REVIEW.md` 未修改。
+
 ---
 
 # Historical Report: Must-Fix Follow-Up for Synthetic Traffic Workflow

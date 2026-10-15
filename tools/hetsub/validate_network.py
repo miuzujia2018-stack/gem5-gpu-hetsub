@@ -119,6 +119,11 @@ def validate(directory, case):
                                  cfg.getint(section, 'output_bytes'))
         ordered_relays = cfg.get('system.ruby.network', 'het_relays').split()
         paths = [int(t) for t in cfg.get('system.ruby.network', 'het_shortcut_paths').split()]
+        if case == 'static_level2':
+            assert paths == [10, 9, 17], 'frozen level-2 shortcut path mismatch'
+            # Tester 10's 16 directed packets must use the frozen level-2 port;
+            # other packets passing through router 10 toward tile 17 may share it.
+            assert values[ordered_relays[0] + '.completed_frames'] >= 16, 'level-2 relay did not carry the directed packets'
         segment_beats = 0
         for i in range(len(ordered_relays)//2):
             serializer, deserializer = ordered_relays[2*i:2*i+2]
