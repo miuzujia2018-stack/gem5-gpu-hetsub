@@ -86,6 +86,11 @@ def suffix_sum(values, suffix):
                if key.endswith('.'+suffix))
 
 
+def link_class(key):
+    name = key.rsplit('.', 1)[-1]
+    return 'virtual_relay_access' if name.startswith('het_relay_links') else 'physical'
+
+
 def mapping(cfg, network):
     rows, links = [], cfg.get(network, 'ext_links').split()
     if len(links) != 72:
@@ -188,8 +193,11 @@ def audit_run(directory):
             errors.append('link transfer/width vectors missing or misaligned')
         sim_ticks = values.get('sim_ticks')
         ruby_clock_ticks = cfg.getfloat('system.ruby_clk_domain', 'clock')
+        physical = {k: v for k, v in flits.items() if link_class(k) == 'physical'}
+        virtual = {k: v for k, v in flits.items() if link_class(k) == 'virtual_relay_access'}
         link_total = sum(flits.values())
-        link_square_total = sum(value*value for value in flits.values())
+        physical_total = sum(physical.values())
+        physical_square_total = sum(value*value for value in physical.values())
         link_count = len(flits)
         link_mean = link_total/link_count if link_count else 0
         result['metrics'] = {
@@ -201,11 +209,15 @@ def audit_run(directory):
             'packet_service_latency_cycles': one_stat(values, 'packet_service_latency_cycles'),
             'packet_completion_latency_cycles': one_stat(values, 'packet_completion_latency_cycles'),
             'link_transfer_flits': link_total,
-            'link_wire_bytes': sum(flits[k]*widths[k] for k in flits),
+            'registered_channel_activity_bytes': sum(flits[k]*widths[k] for k in flits),
+            'physical_wire_bytes': sum(physical[k]*widths[k] for k in physical),
+            'virtual_relay_access_bytes': sum(virtual[k]*widths[k] for k in virtual),
             'registered_links': link_count,
+            'physical_registered_links': len(physical),
+            'virtual_relay_channels': len(virtual),
             'active_links': sum(value > 0 for value in flits.values()),
-            'link_load_jain': (link_total*link_total/(link_count*link_square_total)
-                               if link_count and link_square_total else 0),
+            'physical_link_load_jain': (physical_total*physical_total/(len(physical)*physical_square_total)
+                                        if physical and physical_square_total else 0),
             'link_peak_to_mean': max(flits.values())/link_mean if link_mean else 0,
             'pg_sleep_router_cycles': suffix_sum(values, 'het_sleep_cycles'),
             'pg_waking_router_cycles': suffix_sum(values, 'het_waking_cycles'),
