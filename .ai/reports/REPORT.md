@@ -2,13 +2,27 @@
 
 ## 当前状态
 
+### 10-cluster正式比较完成（待GitHub同步）
+
+正式有效批次为`m5out/comparison_10c/formal_10c_v2_20261015/`。backprop与kmeans各8个方法案例全部正常退出、通过独立CPU数值检查；两个`audit_*.json`均`ok: true`，实际配置一致为16 CPU、10 CudaCore、4 Directory、40 GPU L2、64 routers和72 endpoints，GPGPU-Sim为10×1。TBP VC grant、bak PSO表使用率以及HetSub dual/static活动均为正。
+
+审计曾在v1发现HetSub/TBP的旧`VI_hammer_fusion.py`错误地把40个L2直接作为索引位数，实际`start_index_bit=47`，与bak的13不一致。已在HetSub/TBP改为`ceil(log2(num_l2caches))`，分别提交`e53ac26`与`4d0cf3b`，重新官方干净构建后才产生v2；v1明确无效。最终应用构建凭据：HetSub source `a5470ae3` / binary `9f5ed9cb`，TBP source `2d85cd7a` / binary `1fc9f7ca`，bak source `76ee344d` / binary `409517d9`。构建日志分别为`docker_build_and_test_j64_20261015_203550.log`、TBP `docker_build_and_test_tbp_20261015_204344.log`、bak `docker_build_and_test_j64_20261015_193851.log`。
+
+最终Network_test source `a5470ae3` / binary `1bef3876`，`m5out/hetsub_network/p8_final_20261015/`全部21项通过：有限包排空、消息/字节/flit守恒、L/M并行和阻塞隔离、PG、16↔8/7转换、静态relay/backpressure、pilot与非法配置拒绝均有证据。
+
+正式应用退出仍有8–47个在途消息，延迟人口为退出前已接收原始消息，不声称应用全网排空。四维结果和逐项机制状态见`docs/COMPARISON_10C_RESULTS.md`。当前平台下HetSub dual/static均为负收益；没有调参或选择性隐藏。活动量与PG状态只作为代理，不报告实际J/W或节能百分比。
+
+### 10-cluster正式比较执行阶段记录（已由上方完成状态取代）
+
+用户已批准三仓正式比较专用10 clusters×1、16CPU/4dir/40GPU L2/64tile配置，配置决策阻塞解除。保持旧默认与历史数据，新批次采用独立输出目录和显式参数；规格见TASK及docs/COMPARISON_10C.md。正在执行当前提交的官方干净重建、基线统计口径审查与实际平台核对。新比较尚未通过验收，不把下列旧p6机制数据升级为正式三仓结果。
+
 ### 阶段性 GitHub 备份
 
 用户现已明确：阶段性成果检查或配置确认之前，必须先推送 GitHub。本次备份覆盖 HetSub 核心源码、Docker/构建门禁、测试入口、复现方案、执行/审查/资源报告，并在AGENTS/CLAUDE中固化该要求。备份保留“GPU口径待确认、三仓正式比较未完成”的状态，不表示最终验收通过。原始大体积build_logs/m5out和本机构建凭据按现有规则继续忽略。
 
 当前凭据指纹包含HEAD和未提交改动的表示；提交源码会改变指纹，后续仿真须重新通过官方干净构建，不能手动重录凭据来绕过门禁。已有验证证据对应REPORT所列p6构建及其原始运行。
 
-**等待配置口径确认，整体未完成。** 本轮再次核对AGENTS固定CPU/GPU条款，以及HetSub/TBP的`options.num_sc=10`和bak的40-cluster默认，差异仍在。原异步问题没有收到答复；同一阻塞已连续三轮出现。本轮不修改GPU平台、不发起新的正式比较，已有数据与实现均保留。恢复所需选择见TASK；后续一致平台运行和最终验收仍属原目标。
+**以下为阶段性备份时的历史状态。** 当时GPU配置尚未裁决，因此没有发起正式比较；该阻塞现已由用户批准10-cluster正式配置解除。已有数据继续保留为旧16/10机制证据。
 
 ### 资源与PG补充审查（源码仍为p6）
 

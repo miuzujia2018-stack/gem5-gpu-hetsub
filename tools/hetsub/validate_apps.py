@@ -61,7 +61,16 @@ def block(text, start, end=None):
         section = section.split(end, 1)[0]
     else:
         section = section.split('Training done', 1)[0]
-    return [float(v) for v in re.findall(r'[-+]?\d+(?:\.\d*)?(?:[eE][-+]?\d+)?', section)]
+    # Runtime method monitors may emit trace rows while the application is
+    # printing a numeric block.  Accept complete numeric rows only; embedded
+    # key=value diagnostics are simulator evidence, not application values.
+    number = re.compile(r'[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?')
+    output = []
+    for line in section.splitlines():
+        tokens = line.split()
+        if tokens and all(number.fullmatch(token) for token in tokens):
+            output.extend(float(token) for token in tokens)
+    return output
 
 
 def validate(directory, reference, input_file):
@@ -97,8 +106,15 @@ def validate(directory, reference, input_file):
     assert 0 < received <= injected
     assert values[prefix+'packet_completion_cycles'] == (
         values[prefix+'packet_service_cycles'] + values[prefix+'packet_queue_cycles'])
-    mode = cfg.get(net, 'het_mode')
-    if mode != 'off':
+    mode = cfg.get(net, 'het_mode', fallback=None)
+    method = mode
+    command_file = directory/'command.json'
+    if command_file.is_file():
+        command = json.loads(command_file.read_text())
+        method = command.get('method', method)
+    if mode is None:
+        assert method in ('xy', 'tbp', 'bak'), 'missing method identity'
+    if mode in ('dual', 'static'):
         assert values[prefix+'het_received_packets::total'] == received
     if app == 'backprop':
         assert reference and reference.exists(), 'CPU backprop reference required'
@@ -144,7 +160,7 @@ def validate(directory, reference, input_file):
                 assert values[router+'.het_route_requests'] == 0
                 assert values[router+'.het_buffer_writes'] == 0
         assert values[prefix+'het_bypass_segment_beats'] > 0
-    result = dict(application=app, mode=mode, numeric_reference='CPU',
+    result = dict(application=app, mode=mode, method=method, numeric_reference='CPU',
                   gem5_shader_cores=shader_cores, gpgpusim_shader_cores=clusters*cores_per_cluster,
                   gpu_model_consistent=(shader_cores == clusters*cores_per_cluster),
                   latency_population='received original messages at process exit',
@@ -152,7 +168,7 @@ def validate(directory, reference, input_file):
                   packets_inflight_at_exit=int(injected-received),
                   packet_service_cycles=values[prefix+'packet_service_latency_cycles'],
                   packet_completion_cycles=values[prefix+'packet_completion_latency_cycles'])
-    if mode != 'off':
+    if mode in ('dual', 'static'):
         result['busy_resources_at_process_exit'] = values[prefix+'het_busy_resources']
     return result
 
