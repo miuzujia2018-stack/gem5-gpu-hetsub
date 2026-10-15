@@ -1,8 +1,8 @@
 # HetSub 论文方法复现：独立 Code Review 与下一阶段最小闭环计划
 
 > 审查日期：2026-10-15  
-> 审查方式：GitHub 固定提交静态源码审查 + 已提交的测试器/报告/结果审查；**未修改核心代码、未执行仿真、未复核本地未入库的原始 \`m5out\`/构建日志**。  
-> 审查基线（只读）：父仓 \`467f583e8686771ce999a2663c9e6614e9dbd1da\`，核心交付节点 \`3332114ff8ada4a26709cf27a7d9e6a02a328c72\`；gitlink：\`gem5=a90c04ca8aad279876784601f9647c2e0195c763\`、\`gem5-gpu=e53ac2648724060cebf90b801ed7a42b2a992e58\`、\`gpgpu-sim=17f16f104e16f80e8b2a3c8bae68c49c0495cd69\`、\`Graphite=e3ab0ecfd6aef274896219fac4cdfdfa54740426\`、\`benchmarks=35d7550604420dea8f64808208b01c43aae03a39\`。
+> 审查方式：GitHub 固定提交静态源码审查 + 已提交的测试器/报告/结果审查；**未修改核心代码、未执行仿真、未复核本地未入库的原始 `m5out`/构建日志**。  
+> 审查基线（只读）：父仓 `467f583e8686771ce999a2663c9e6614e9dbd1da`，核心交付节点 `3332114ff8ada4a26709cf27a7d9e6a02a328c72`；gitlink：`gem5=a90c04ca8aad279876784601f9647c2e0195c763`、`gem5-gpu=e53ac2648724060cebf90b801ed7a42b2a992e58`、`gpgpu-sim=17f16f104e16f80e8b2a3c8bae68c49c0495cd69`、`Graphite=e3ab0ecfd6aef274896219fac4cdfdfa54740426`、`benchmarks=35d7550604420dea8f64808208b01c43aae03a39`。
 >
 > **核心裁决：维持“当前固定 CPU–GPU 平台上的 HetSub 周期级核心机制复现与迁移比较已完成”的*限定性批准*；不批准据此宣称原论文平台、RTL、面积、实际能耗、性能幅度或任意输入的正确性已复现。本轮静态审查未确认必须立刻修改数据路径的 P0 缺陷，但发现需要纠正的指标语义问题与尚缺定向见证的算法覆盖边界。下阶段先做最小证据闭环，禁止为追求正收益扩张实验。**
 
@@ -16,7 +16,7 @@
 
 ## 2. 逐机制源码证据矩阵
 
-固定核心代码链接以下均指向 [gem5 的 a90c04ca](https://github.com/miuzujia2018-stack/gem5/tree/a90c04ca8aad279876784601f9647c2e0195c763)，父仓脚本均指向 \`467f583e\` 版本。
+固定核心代码链接以下均指向 [gem5 的 a90c04ca](https://github.com/miuzujia2018-stack/gem5/tree/a90c04ca8aad279876784601f9647c2e0195c763)，父仓脚本均指向 `467f583e` 版本。
 
 | 原文核心机制 | 真实数据路径/实现证据（文件:行） | 当前判定与界限 |
 |---|---|---|
@@ -38,13 +38,13 @@
 
 | ID | 级别/性质 | 源码证据、影响与处置 |
 |---|---|---|
-| F-01 | **P1，已确认统计语义问题** | [GarnetNetwork.cc:593–597](https://github.com/miuzujia2018-stack/gem5/blob/a90c04ca8aad279876784601f9647c2e0195c763/src/mem/ruby/network/garnet/flexible-pipeline/GarnetNetwork.cc#L593-L597) 已说明 link vector **包括虚拟 relay 接入通道**；但 [audit_comparison.py:185–209](../tools/hetsub/audit_comparison.py) 对全部登记链路直接求 \`link_wire_bytes\` 和 Jain。故结果表的 \`wire MB\` 不能直接称“真实物理走线传输字节”或能耗近似精确值；static 路径还存在旁路物理段记账与虚拟访问链路活动的混合。**必须在报告中更名/区分“registered-channel activity”和“physical-segment activity”，明确维度及计数边界；优先对既有 stats/config 做只读重新分类，不先跑新实验。** |
-| F-02 | **P1，算法覆盖缺口，不是已确认算法错误** | [insert_shortcuts.py:31–55](../tools/hetsub/insert_shortcuts.py) 定义 level1/2；[test_insertion.py:9–44](../tools/hetsub/test_insertion.py) 仅断言层级顺序和阈值；[正式结果](COMPARISON_10C_RESULTS.md) 报告两个 pilot 最终均 4 条 level-1。尚缺单独构造 \`level1=0、level2>threshold\` 的 profile，并实证产生的 level-2 线在 Network_test 中承载消息。**下一阶段优先补这一条定向机制见证**；不要扩张到全部应用/seed 组合。 |
-| F-03 | **P1，结论边界/不可把未完成流量算成完整交付** | [NI:423–483](https://github.com/miuzujia2018-stack/gem5/blob/a90c04ca8aad279876784601f9647c2e0195c763/src/mem/ruby/network/garnet/flexible-pipeline/NetworkInterface.cc#L423-L483) 以 received packets 计算完成；[audit_comparison.py:173–216](../tools/hetsub/audit_comparison.py) 接受 \`injected>received\` 并标记 \`explicit_network_drain=false\`。v2 应用在途 8–47 条不意味着丢包，但也不能宣称“应用网络全排空”“所有注入消息均完成”；当前结果文档已经正确披露。**只要继续坚持该措辞，暂不构成需改核心代码的缺陷。** |
-| F-04 | **P2，方法平台适配，须留在论文明示** | [GarnetNetwork.cc:325–352](https://github.com/miuzujia2018-stack/gem5/blob/a90c04ca8aad279876784601f9647c2e0195c763/src/mem/ruby/network/garnet/flexible-pipeline/GarnetNetwork.cc#L325-L352) \`Hilbert distance≤2\` 判 local、ordered vnet 固定 M；[Router.cc:2374–2389](https://github.com/miuzujia2018-stack/gem5/blob/a90c04ca8aad279876784601f9647c2e0195c763/src/mem/ruby/network/garnet/flexible-pipeline/Router.cc#L2374-L2389) 最忙端口代替可能不同的论文采样；这些是迁移映射，不能写“原算法所有细节逐位一致”。 |
-| F-05 | **P2，时序与能量模型界限** | [GarnetNetwork.cc:294–295](https://github.com/miuzujia2018-stack/gem5/blob/a90c04ca8aad279876784601f9647c2e0195c763/src/mem/ruby/network/garnet/flexible-pipeline/GarnetNetwork.cc#L294-L295) 1-cycle abstract 或 \`segments.size()\` 保守延迟；[Router.cc:2440–2452](https://github.com/miuzujia2018-stack/gem5/blob/a90c04ca8aad279876784601f9647c2e0195c763/src/mem/ruby/network/garnet/flexible-pipeline/Router.cc#L2440-L2452) 的 10 WU 为静态功耗等价事件。不能推导 2GHz 路径物理闭合、J/W 或全面积公平。128/56 只匹配内部链路位宽预算。 |
+| F-01 | **P1，已确认统计语义问题** | [GarnetNetwork.cc:593–597](https://github.com/miuzujia2018-stack/gem5/blob/a90c04ca8aad279876784601f9647c2e0195c763/src/mem/ruby/network/garnet/flexible-pipeline/GarnetNetwork.cc#L593-L597) 已说明 link vector **包括虚拟 relay 接入通道**；但 [audit_comparison.py:185–209](../tools/hetsub/audit_comparison.py) 对全部登记链路直接求 `link_wire_bytes` 和 Jain。故结果表的 `wire MB` 不能直接称“真实物理走线传输字节”或能耗近似精确值；static 路径还存在旁路物理段记账与虚拟访问链路活动的混合。**必须在报告中更名/区分“registered-channel activity”和“physical-segment activity”，明确维度及计数边界；优先对既有 stats/config 做只读重新分类，不先跑新实验。** |
+| F-02 | **P1，算法覆盖缺口，不是已确认算法错误** | [insert_shortcuts.py:31–55](../tools/hetsub/insert_shortcuts.py) 定义 level1/2；[test_insertion.py:9–44](../tools/hetsub/test_insertion.py) 仅断言层级顺序和阈值；[正式结果](COMPARISON_10C_RESULTS.md) 报告两个 pilot 最终均 4 条 level-1。尚缺单独构造 `level1=0、level2>threshold` 的 profile，并实证产生的 level-2 线在 Network_test 中承载消息。**下一阶段优先补这一条定向机制见证**；不要扩张到全部应用/seed 组合。 |
+| F-03 | **P1，结论边界/不可把未完成流量算成完整交付** | [NI:423–483](https://github.com/miuzujia2018-stack/gem5/blob/a90c04ca8aad279876784601f9647c2e0195c763/src/mem/ruby/network/garnet/flexible-pipeline/NetworkInterface.cc#L423-L483) 以 received packets 计算完成；[audit_comparison.py:173–216](../tools/hetsub/audit_comparison.py) 接受 `injected>received` 并标记 `explicit_network_drain=false`。v2 应用在途 8–47 条不意味着丢包，但也不能宣称“应用网络全排空”“所有注入消息均完成”；当前结果文档已经正确披露。**只要继续坚持该措辞，暂不构成需改核心代码的缺陷。** |
+| F-04 | **P2，方法平台适配，须留在论文明示** | [GarnetNetwork.cc:325–352](https://github.com/miuzujia2018-stack/gem5/blob/a90c04ca8aad279876784601f9647c2e0195c763/src/mem/ruby/network/garnet/flexible-pipeline/GarnetNetwork.cc#L325-L352) `Hilbert distance≤2` 判 local、ordered vnet 固定 M；[Router.cc:2374–2389](https://github.com/miuzujia2018-stack/gem5/blob/a90c04ca8aad279876784601f9647c2e0195c763/src/mem/ruby/network/garnet/flexible-pipeline/Router.cc#L2374-L2389) 最忙端口代替可能不同的论文采样；这些是迁移映射，不能写“原算法所有细节逐位一致”。 |
+| F-05 | **P2，时序与能量模型界限** | [GarnetNetwork.cc:294–295](https://github.com/miuzujia2018-stack/gem5/blob/a90c04ca8aad279876784601f9647c2e0195c763/src/mem/ruby/network/garnet/flexible-pipeline/GarnetNetwork.cc#L294-L295) 1-cycle abstract 或 `segments.size()` 保守延迟；[Router.cc:2440–2452](https://github.com/miuzujia2018-stack/gem5/blob/a90c04ca8aad279876784601f9647c2e0195c763/src/mem/ruby/network/garnet/flexible-pipeline/Router.cc#L2440-L2452) 的 10 WU 为静态功耗等价事件。不能推导 2GHz 路径物理闭合、J/W 或全面积公平。128/56 只匹配内部链路位宽预算。 |
 | F-06 | **P2，跨仓指标不可混作单因素因果** | [audit_comparison.py:110–129](../tools/hetsub/audit_comparison.py) 比较了选定平台签名，但不证明三个独立源码基线只差路由；Jain 的链路集合、子网构成也不同。结果表可保留，但不能用跨网络 Jain 数值直接宣称某一方法负载更均衡；TBP/bak 与 HetSub-off 的时间差是“同冻结平台方法系统比较”，非纯路由因果。 |
-| F-07 | **P2，远程证据可复核性缺口** | \`m5out/comparison_10c/formal_10c_v2_20261015/\` 和构建凭据并未作为 GitHub 文本证据入库；[REPORT](../.ai/reports/REPORT.md) 记载两个 \`audit_*.json\` 为 \`ok:true\`，本轮不能独立读取原始 \`config.ini/stats.txt/stdout.log\`。**不得把本次远程源码审查描述为已重新运行 16+21 实验**。不建议上传大体积原始目录或引入多重哈希链；复审时只需在执行机按原命令核验必要摘要。 |
+| F-07 | **P2，远程证据可复核性缺口** | `m5out/comparison_10c/formal_10c_v2_20261015/` 和构建凭据并未作为 GitHub 文本证据入库；[REPORT](../.ai/reports/REPORT.md) 记载两个 `audit_*.json` 为 `ok:true`，本轮不能独立读取原始 `config.ini/stats.txt/stdout.log`。**不得把本次远程源码审查描述为已重新运行 16+21 实验**。不建议上传大体积原始目录或引入多重哈希链；复审时只需在执行机按原命令核验必要摘要。 |
 
 ### P0 裁决
 
@@ -58,11 +58,11 @@
 
 | 步骤 | 优先级 | 做什么（最小变更） | 产物 | 判定门 |
 |---|---|---|---|---|
-| N1-0：论文—源码映射核对 | P1 | 直接逐行核对论文 Algorithm 1/2 伪码及 III-A/III-B 对应条件、阈值、候选顺序、static 与 PG 模式；记录“论文规定 / 当前实现 / 平台适配 / 尚无法比对”。仅补审查文字，不碰核心码 | \`docs/HETSUB_METHOD_FIDELITY_CROSSWALK.md\`（约 1–2 页） | 每个论文决策分支有源码行号、输入条件、差异判定；没有全文则标 \`SOURCE-PENDING\`，不得猜测 |
-| N1-1：指标语义修复 | **P1 首做** | 对现有 \`config.ini + stats.txt\` 只读归类物理 M/L 内部段、独立 NI 物理通道、虚拟 relay 接入、静态代理统计；调整 \`audit_comparison.py\` 输出/文档标签，优先不改变采样内核 | 一份单案例分类审计和修订版指标字典；旧结果保留 | 归类和为现有登记链路活动；“物理段”不包含虚拟 relay 访问；未校准活动不写 J/W；若无法可靠识别则明确 \`not computable\` 而不是猜 |
-| N1-2：Algorithm 2 两级功能见证 | **P1** | 在既有 \`test_insertion.py\` 新增构造 profile：让所有 level-1 子区之间流量为 0、同一 4×4 区内非相邻 2×2 子区流量超过阈值；固定一次冻结 level-2 配置。使用现有 Network_test 在该配置下做**一项**有限包定向测试；不扩张为应用/seed 矩阵 | 最小 fixture、一个单元测试、一个网络测试输出、审查摘要 | 确实选出 level-2，配置合法；运行时该 shortcut 的物理段 beats **>0**；完整 packet/byte/flit 守恒且所有 NI/VC/relay/link 显式排空；不命中时不能将 \`selected\` 当作已生效 |
-| N1-3：旁路服务与 PG 边界 | P1（只在缺见证时） | 先复用现有 \`static7\`、\`static_pilot\`、\`pg_mesh\`、\`independence\` 证据；针对未覆盖的不变量只加 **最多一项**定向对照，比较 M sleeping/waking 与 L 推进、relay 下游阻塞/恢复、local MUX 授权和静态 M 普通 RC=0 | 不变量检查脚本断言/原有日志索引 | \`waking_cycles=6×wakeups\`、\`WU=10×wakeups\`；活动资源不提前睡眠；背压计数正且未丢包；static 中普通 M 路由请求及 buffer write=0 |
-| N1-4：最终复审/封版 | P1 | 按本文件表格对新增/更新证据复核，修订“已实现/近似/未实现”；保持 negative results 和 v1 无效记录；GitHub 文档提交与远端 SHA 校验 | \`.ai/reviews/REVIEW.md\` 中 N1 决议 + 对应报告 | 所有 P1 关闭或有明确不能关闭的证据/限制；零未解释失败；源码修改后官方干净构建及运行前 verify；用户审查前推送 GitHub |
+| N1-0：论文—源码映射核对 | P1 | 直接逐行核对论文 Algorithm 1/2 伪码及 III-A/III-B 对应条件、阈值、候选顺序、static 与 PG 模式；记录“论文规定 / 当前实现 / 平台适配 / 尚无法比对”。仅补审查文字，不碰核心码 | `docs/HETSUB_METHOD_FIDELITY_CROSSWALK.md`（约 1–2 页） | 每个论文决策分支有源码行号、输入条件、差异判定；没有全文则标 `SOURCE-PENDING`，不得猜测 |
+| N1-1：指标语义修复 | **P1 首做** | 对现有 `config.ini + stats.txt` 只读归类物理 M/L 内部段、独立 NI 物理通道、虚拟 relay 接入、静态代理统计；调整 `audit_comparison.py` 输出/文档标签，优先不改变采样内核 | 一份单案例分类审计和修订版指标字典；旧结果保留 | 归类和为现有登记链路活动；“物理段”不包含虚拟 relay 访问；未校准活动不写 J/W；若无法可靠识别则明确 `not computable` 而不是猜 |
+| N1-2：Algorithm 2 两级功能见证 | **P1** | 在既有 `test_insertion.py` 新增构造 profile：让所有 level-1 子区之间流量为 0、同一 4×4 区内非相邻 2×2 子区流量超过阈值；固定一次冻结 level-2 配置。使用现有 Network_test 在该配置下做**一项**有限包定向测试；不扩张为应用/seed 矩阵 | 最小 fixture、一个单元测试、一个网络测试输出、审查摘要 | 确实选出 level-2，配置合法；运行时该 shortcut 的物理段 beats **>0**；完整 packet/byte/flit 守恒且所有 NI/VC/relay/link 显式排空；不命中时不能将 `selected` 当作已生效 |
+| N1-3：旁路服务与 PG 边界 | P1（只在缺见证时） | 先复用现有 `static7`、`static_pilot`、`pg_mesh`、`independence` 证据；针对未覆盖的不变量只加 **最多一项**定向对照，比较 M sleeping/waking 与 L 推进、relay 下游阻塞/恢复、local MUX 授权和静态 M 普通 RC=0 | 不变量检查脚本断言/原有日志索引 | `waking_cycles=6×wakeups`、`WU=10×wakeups`；活动资源不提前睡眠；背压计数正且未丢包；static 中普通 M 路由请求及 buffer write=0 |
+| N1-4：最终复审/封版 | P1 | 按本文件表格对新增/更新证据复核，修订“已实现/近似/未实现”；保持 negative results 和 v1 无效记录；GitHub 文档提交与远端 SHA 校验 | `.ai/reviews/REVIEW.md` 中 N1 决议 + 对应报告 | 所有 P1 关闭或有明确不能关闭的证据/限制；零未解释失败；源码修改后官方干净构建及运行前 verify；用户审查前推送 GitHub |
 
 ### 最小测试预算与停机条件
 
@@ -75,7 +75,7 @@
 ## 5. 执行契约与最终输出
 
 1. 当前仅授权**审查文档提交**；N1 代码修改、网络运行、正式实验都属于将来的实施步骤，**本轮未授权执行**。
-2. 下一阶段若需要执行，先在 \`.ai/tasks/TASK.md\` 冻结具体改动文件和一项新定向场景，再最小修改；严格复用 \`tools/reproduction/verify_gem5_build.sh\`，不得手工录入或绕过凭据。
+2. 下一阶段若需要执行，先在 `.ai/tasks/TASK.md` 冻结具体改动文件和一项新定向场景，再最小修改；严格复用 `tools/reproduction/verify_gem5_build.sh`，不得手工录入或绕过凭据。
 3. 验收只问：“论文决策机制是否由真实源码实现、定向输入能否引出预期状态和活动、是否正确守恒和交付、差异有没有被清晰披露？”不以性能是否优于 XY/bak/TBP 判断复现成功。
 4. 任何阶段性请用户审查或确认之前，依 AGENTS.md 先提交并推送 GitHub，核对父仓/子仓 SHA，附可直接访问的 Markdown 链接；仅文档改动不触发源码指纹重建。
 
