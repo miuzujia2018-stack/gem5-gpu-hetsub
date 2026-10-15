@@ -1,6 +1,36 @@
 # Active Task — HetSub 核心机制实施（2026-10-15）
 
-## 当前生效裁决：正式三仓统一配置（取代下文等待确认状态）
+## 当前生效裁决：GOAL-HS-N1（用户已授权执行，取代下文旧批次状态）
+
+范围严格限定为独立 Code Review（`docs/HETSUB_METHOD_CODE_REVIEW_NEXT_PHASE_20261015.md`）两个 P1 的最小闭环，按用户阶段表 N1-0…N1-4 执行。不重跑正式三仓应用矩阵，不为改变 HetSub 负收益调整方法参数；原有限定性批准继续有效。
+
+### 冻结修改文件
+- `tools/hetsub/audit_comparison.py`（N1-1：按 config.ini 链路 section 命名把登记通道分为物理与虚拟两类）
+- `docs/COMPARISON_10C_RESULTS.md`（仅统计标签与重分析数值，不改实验结论）
+- `tools/hetsub/test_insertion.py`（N1-2：新增一个 level-2 选择单元测试）
+- `tools/hetsub/fixtures/profile_level2.csv` 与 `tools/hetsub/fixtures/static_level2.json`（冻结 level-2 配置，由离线工具从该 profile 生成）
+- `tools/hetsub/run_network_checks.sh`（新增单一用例 `static_level2`）
+- `tools/hetsub/validate_network.py`（新用例断言）
+- `.ai/reports/REPORT.md` 与本 TASK.md
+- 不改 flexible-pipeline 源码；`X86_Network_test` 现有构建凭据继续有效，运行前 verify 门禁不变
+
+### N1-1 完成标准
+- 分类规则：`ext_links`、`int_links`、`het_line_links` 为物理链路；`het_relay_links` 为虚拟 relay 接入通道
+- 优先用 `formal_10c_v2_20261015` 已有数据重分析，输出物理/虚拟活动分离与仅物理 Jain；不为改统计名称重跑仿真
+- 结果文档 `wire MB` 标签改为登记通道活动，物理与虚拟分列
+
+### N1-2 冻结定向场景（单一定向场景）
+- 左上 4×4 区：profile 仅含 flow 10→17（16 包 × 72B 数据消息 = 1152B），threshold=128、limit=4；所有 level-1 流为 0，唯一选中为 level-2 (10,17)，物理路径 [10,9,17]
+- 转置 pattern 保证 tester 10 的全部包目的为 17；Hilbert rank(10)=7 < rank(17)=13，单调条件在源 router 成立
+- 验收：离线审计仅 level-2 被选中；运行中 relay `completed_frames > 0`（实际承载）；物理段 beats > 0；包/字节/flit 守恒；全部上下文排空（`het_busy_resources == 0`）。仅凭离线生成配置不算通过
+
+### N1-3 完成标准
+- 复用现有 21 项有限包检查（含新用例共 22 项）一次完整运行；无新增未解释缺陷；失败保持未验收
+
+### N1-4 完成标准
+- P1 关闭证据可复核：重分析 JSON、单元测试、定向用例运行输出与 validate 结果写入 REPORT.md；提交推送并核对远端；最终 Code Review 由用户执行，不修改 `.ai/reviews/REVIEW.md`
+
+## 历史裁决：正式三仓统一配置
 
 用户已批准正式比较专用配置：10 clusters × 1 core、16 CPU、4 Directory、40 GPU L2、64 tile Mesh，保留10个GPU NoC端点。配置决策阻塞已解除，不再重复请求相同确认。旧16/10混合结果仅为历史机制证据；bak默认40-cluster配置及历史实验保留。
 
