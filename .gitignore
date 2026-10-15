@@ -184,4 +184,5 @@ running-gem5-gpu-output.txt
 
 # Chat logs (optional - exclude if too large)
 chat.md
+codex-*.md
 .build_provenance/

@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-### 10-cluster正式比较完成（待GitHub同步）
+### 10-cluster正式比较完成（已同步GitHub）
 
 正式有效批次为`m5out/comparison_10c/formal_10c_v2_20261015/`。backprop与kmeans各8个方法案例全部正常退出、通过独立CPU数值检查；两个`audit_*.json`均`ok: true`，实际配置一致为16 CPU、10 CudaCore、4 Directory、40 GPU L2、64 routers和72 endpoints，GPGPU-Sim为10×1。TBP VC grant、bak PSO表使用率以及HetSub dual/static活动均为正。
 
@@ -11,6 +11,8 @@
 最终Network_test source `a5470ae3` / binary `1bef3876`，`m5out/hetsub_network/p8_final_20261015/`全部21项通过：有限包排空、消息/字节/flit守恒、L/M并行和阻塞隔离、PG、16↔8/7转换、静态relay/backpressure、pilot与非法配置拒绝均有证据。
 
 正式应用退出仍有8–47个在途消息，延迟人口为退出前已接收原始消息，不声称应用全网排空。四维结果和逐项机制状态见`docs/COMPARISON_10C_RESULTS.md`。当前平台下HetSub dual/static均为负收益；没有调参或选择性隐藏。活动量与PG状态只作为代理，不报告实际J/W或节能百分比。
+
+最终成果父仓提交`3332114f`已推送至`synthetic-traffic-three-patterns`，五个嵌套仓远端提交与父仓gitlink逐项一致。会话导出文件不属于项目交付物，按聊天日志规则保留在本地并忽略，不纳入成果提交。
 
 ### 10-cluster正式比较执行阶段记录（已由上方完成状态取代）
 
