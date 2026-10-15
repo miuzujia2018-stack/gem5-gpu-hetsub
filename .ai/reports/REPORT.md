@@ -1,4 +1,133 @@
-# Report: Must-Fix Follow-Up for Synthetic Traffic Workflow
+# Report: HetSub 核心机制实施进度（2026-10-15）
+
+## 当前状态
+
+### 阶段性 GitHub 备份
+
+用户现已明确：阶段性成果检查或配置确认之前，必须先推送 GitHub。本次备份覆盖 HetSub 核心源码、Docker/构建门禁、测试入口、复现方案、执行/审查/资源报告，并在AGENTS/CLAUDE中固化该要求。备份保留“GPU口径待确认、三仓正式比较未完成”的状态，不表示最终验收通过。原始大体积build_logs/m5out和本机构建凭据按现有规则继续忽略。
+
+当前凭据指纹包含HEAD和未提交改动的表示；提交源码会改变指纹，后续仿真须重新通过官方干净构建，不能手动重录凭据来绕过门禁。已有验证证据对应REPORT所列p6构建及其原始运行。
+
+**等待配置口径确认，整体未完成。** 本轮再次核对AGENTS固定CPU/GPU条款，以及HetSub/TBP的`options.num_sc=10`和bak的40-cluster默认，差异仍在。原异步问题没有收到答复；同一阻塞已连续三轮出现。本轮不修改GPU平台、不发起新的正式比较，已有数据与实现均保留。恢复所需选择见TASK；后续一致平台运行和最终验收仍属原目标。
+
+### 资源与PG补充审查（源码仍为p6）
+
+- `tools/hetsub/audit_resources.py`核对18个合成HetSub案例和8个应用案例，共26个运行，router/NI/relay/staging数据位、PG逐router周期分解与6/10事件计数全部一致。完整资源表及排除项见[RESOURCE_AUDIT.md](RESOURCE_AUDIT.md)。本轮没有改动三个指纹源码仓，无需重建。
+- 原文IV-A重新核对6-cycle WU、10-cycle break-even静态功耗等价事件成本。澄清历史方案能量式：按WU事件总成本记账时，不再重复叠加6-cycle waking能量。现有源码仅记录事件/状态，没有输出未经校准的焦耳或节能率，未改动已验证数据路径。
+- 128/56匹配内部总链路位宽，但72个应用端点双向接入线路安装位宽3312 byte，高于单网2304 byte；128/64为3456 byte。NI服务仍为每端点每方向最多16 byte/cycle。资源公平性必须保留此差异。
+- 当前应用数据队列合计：dual8 415584 bytes、dual7 385776 bytes、4-shortcut static8 422144 bytes、static7 392172 bytes。传播pipeline、控制元数据与mux/crossbar未做RTL面积映射，不能将这些合计称为完整硬件面积。
+- pilot实测Hilbert距离≤2的有效字节占比：backprop 5.6787%，kmeans 5.2734%；不是原文聚类系数。多数global通信与SNN局部性不同，支持保留本平台负收益作为迁移结论。
+- GPU口径仍待先前异步问题的答复；未擅自切换10 clusters，未启动三仓正式比较。任务目标保持完整。
+
+
+### p6 最新状态：核心机制与应用数值已验证，三仓正式比较未完成
+
+- Network_test官方干净构建：`build_logs/hetsub_network_p6_packet_metrics.log`，成功并通过现有凭据验证。`m5out/hetsub_network/20261015T080744Z/`的21项检查全部PASS（exit 0）。
+- 新增原始packet最终tail交付一次的service/source-queue/completion/max-completion统计；relay保留原始birth与delay。检查`completion_cycles = service_cycles + queue_cycles`及平均值分母为收到的原始消息，off/dual/static一致。历史flit平均延迟与PerformanceAnalyzer打印不用于比较。
+- 独立性4096包压力：10557个同tile双子网并行周期；2559次L传输发生在同tile M WAKING期间；10990次M传输发生在对应vnet的L转发队列满时，结束全部排空。
+- 配置通道依赖检查：dual枚举8192路由，350资源/512依赖；4-shortcut static枚举4096路由，142资源/144依赖，均无环。检查实际L/M边与冻结路径；范围限每vnet隔离的NoC通道/relay，排除Ruby协议层依赖和硬件时序。
+- VI_hammer_GPU官方干净构建已成功并记录/验证凭据：`build_logs/hetsub_app_p6_off.log`。官方一键命令测试阶段因Ubuntu14旧Bash空数组在模拟前中止（exit 1）；父仓run.sh兼容修复后，用同一已验证二进制经run.sh重新运行both，exit 0。未手动修改凭据，也未把首次完整脚本记为成功。
+- 应用启动显式保留16CPU、4dir、40L2、64tile、CPU2GHz/Ruby2GHz、D4/2stage；输出位于仓库独立目录。kmeans加`-o -r`输出数值，数据与二进制不变。后续比较全部方法必须使用相同参数与输出选项。
+
+#### p6 应用机制读数（保留现有GPU配置；不是三仓正式比较）
+
+以下10次实际运行均正常退出并通过独立CPU数值检查。off smoke使用seed1234，HetSub正式机制验证用seed42，pilot用17；这些读数不拼成正式性能优劣结论。
+
+| 模式目录（均在m5out/hetsub_apps） | backprop service/completion cycles | kmeans service/completion cycles |
+|---|---:|---:|
+| `20261015T085207Z` off | 34.705593 / 80.881561 | 33.932605 / 76.432308 |
+| `p6_dual8` | 115.875718 / 217.870435 | 111.870959 / 194.807023 |
+| `p6_dual7` | 115.537826 / 217.289525 | 112.090740 / 195.155800 |
+| `p6_static8` | 155.027047 / 297.628905 | 148.763023 / 258.317097 |
+| `p6_static7` | 171.184816 / 336.421066 | 168.237582 / 290.561043 |
+
+- 数值参考：`tools/hetsub/reference_backprop.c`链接现有标量backprop.c，在同Docker中编译运行；参考输出`m5out/hetsub_apps/reference/backprop_cpu.txt`。验证16个partial sums、289个权重、有效输入，容差2e-5。原CUDA host未初始化的bias槽0不当成有效输入；所有实际输入仍参与partial-sum/权重检查。
+- kmeans独立float32 CPU参考：现有文本reader把首列当ID，因此实际输入为99点×1特征；4轮收敛，五中心47.88261/65.68333/26.79546/7.28823/83.06844。显示坐标容差0.0051。原cluster.c将RMSE暂存int，打印4.000而独立浮点值约4.622897；保留并披露此旧行为，正确性以中心为主。
+- 应用pilot目录`p6_dual8_pilot/backprop`与`p6_kmeans_pilot/kmeans`均数值通过，seed17实际流量各生成4条冻结路径（阈值128 bytes、limit4）；配置位于`m5out/hetsub_app_configs/{backprop,kmeans}_p6.json`，static seed42实际读取。两种宽度的static均有M普通RC/buffer零活动及实际旁路beats证据。
+- 五种模式的实际72个外部端点映射、106个RubyCache几何及源时钟逐项相同。实际控制器为17 L1Cache、10 GPUL1Cache、40 GPUL2Cache、4 Directory、1 GPUCopyDMA，不能把命令行40L2误写成40个GPU核。
+- 进程退出时尚有16–34个在途消息（不是本测试已证明的丢包），HetSub busy资源40–70；平均延迟只统计退出前已收到的原始消息，不宣称应用结束网络排空。合成有限包的完整排空已另行通过。
+
+#### 正式比较前发现的真实平台差异（待用户选择口径）
+
+1. 本仓和TBP的GPUConfig.py在解析16 clusters后硬编码`options.num_sc=10`：config.ini实际10个CudaCore，但gpgpusim.config为16×1。bak无该硬编码，默认又已调整为ALPHA的40 clusters/8dir/8L2。这不是同一系统平台，当前数值只能作本仓已有平台上的机制验证。
+2. 已通过异步问题请求选择：推荐三仓显式10 clusters、保留现有10个GPU NoC端点，或保留16/10旧状态但不宣称三仓平台一致。AGENTS要求CPU/GPU固定，未在用户答复前修改GPU配置或外仓。
+3. bak使用random_seed布置GPU，本仓/TBP使用topology_seed；后续可采用共同sim seed0/topology seed0，并核对实际映射。CPU/cache/dir/cluster参数必须显式覆盖默认，不能只核对参数名。
+4. cmp实测三仓两应用二进制相同；HetSub/TBP的kmeans_input相同，bak输入不同或缺失。正式比较应显式读取同一当前输入；现有证据不是三仓比较结果。
+
+
+前批次p5官方干净构建`build_logs/hetsub_network_p5_pilot_pressure.log`成功并通过凭据验证。原始输出`m5out/hetsub_network/20261015T072805Z/`涵盖20个案例。初次整套返回1：Transpose未使用全部固定shortcut，但测试断言要求每条都使用；源码仿真没有失败。修正该模式的覆盖断言后，20个保留案例重新检查全部通过（exit 0），Transpose实际单独重跑`m5out/hetsub_network/20261015T073440Z/`也PASS（exit 0）。不把初次exit 1记作整套运行exit 0。
+
+### p5新增证据
+
+- Bit Reverse的L与56-bit M各交付1024包并排空；Transpose的双shortcut配置交付1024包，其中一条实际承载176帧，另一条未命中，保留该适用范围。
+- Transpose记录492个下游阻塞周期、8次local MUX延后、3424物理段beats；原始包/有效字节/包含relay转换的所有flit守恒，VC及queue排空。uniform static7记录90个下游阻塞周期。
+- pilot使用seed17、1024包，实际接受源消息的tile流量矩阵导出913对，CSV有效字节总数与注入统计一致。现有Stats reset语义适用；无需逐包哈希或注册表。
+- `insert_shortcuts.py --profile <pilot>/profile.csv --output <pilot>/shortcuts.json --threshold-bytes=128 --limit=4`选出4条非冲突配置；配置中物理路径与运行时`het_shortcut_paths`已逐项核对相同。
+- static_pilot使用seed42及56-bit M，读取上述冻结JSON而不生成/读取测试未来profile；交付1024包，8个relay，4876物理段beats，737下游阻塞周期、9次MUX延后，并全部排空。
+- Algorithm 2四项测试再次PASS。原有XY/L/M/选择/PG/1/2GHz检查亦在p5本次输出中重新通过。PG-M本次212次唤醒/1272个waking cycles。
+- 尚不能用这些合成有限包结果宣称CPU/GPU应用正确、形式化无死锁或2GHz硬件时序实现。原flit平均延迟因relay分段计数变化不能用作packet延迟；下一阶段添加原始消息完成延迟后再比较。
+
+### p4静态旁路实际证据
+
+- static8：21帧、744 bytes经过单条shortcut，宽→窄57→93 flits，反向转换93→57，372物理段beats；relay存储984 bytes。
+- static7：相同21帧/744 bytes，57→123→57 flits，492物理段beats；relay存储943 bytes。FIFO高水位4，未超过容量。
+- static_two：两条shortcut分别21/22帧，748物理段beats，relay存储1968 bytes。
+- static_abstract：一周期composite传播敏感性配置通过，未宣称硬件时序闭合。
+- 所有静态案例交付256原始包、有效字节及全路径flit守恒；M普通route request及buffer write均0；所有Router/NI/relay/link上下文与队列在结束时排空。
+- reject_conflict、reject_nonadjacent均在配置阶段按预期拒绝。静态模式无普通M注入；local MUX与有限staging已在源码生效，p5已补充其单独活动计数并有正值证据。
+- composite引用并独占原M源本地段、1/2个内部物理段和目标本地段；保守配置传播周期为这些段数，抽象配置为1。虚拟L本地接入与原NI本地链接共享传输机会。VC握手沿用本模拟器事件语义，未复现RTL控制延迟。
+
+
+任务未完成。以下保留p3九项原始证据；最新版本为p5，覆盖范围与验收结果见上文。专用容器`gem5gpu-dev-hetsub`使用`myubuntu14:latest`，显式绑定当前仓库同名路径。
+
+## 最新实际证据及边界
+
+| 案例 | 交付packet | L/M注入packet | 实际flit | 结果 |
+|---|---:|---:|---:|---|
+| off | 256 | 不适用 | 原XY路径 | PASS，2VC、D4、2stage |
+| line | 256 | 256/0 | 624 | PASS |
+| mesh8 | 256 | 0/256 | 992 | PASS |
+| mesh7 | 256 | 0/256 | 1340 | PASS |
+| policy | 256 | 256/0 | 624 | PASS，低负载优先L |
+| policy_load | 1024 | 978/46 | 2452 | PASS，实际拥塞分流 |
+| pg_line | 256 | 256/0 | 624 | PASS，M sleep764800 cycles，0 wakeup |
+| pg_mesh | 256 | 0/256 | 992 | PASS，M sleep725464 cycles，213 wakeup、1278 waking cycles |
+| line_1ghz | 256 | 256/0 | 624 | PASS，时钟对照 |
+
+每项检查正常退出、包/有效字节/flit守恒，dual模式接收器逐帧检查目的NI、消息身份、索引顺序和有效字节覆盖。PG检查每次唤醒6 cycles、每次转换能量10个active-static-cycle equivalents。它们是有限包机制证据，不证明所有流量无死锁，也不替代应用正确性或relay验收。
+
+- 时间：全局tick=1ps，主项2GHz/12000 cycles对应6000000 ticks；1GHz对照对应12000000 ticks。NetworkTest退出条件已从curTick改为curCycle。
+- 拥塞反馈：75%/50%滞回、128-cycle采样保持不变；每端点每vnet测最忙transit输出端口占用，避免空闲vnet和反向端口稀释。该反馈范围属于输出buffer平台适配，不宣称原文逐位一致。
+- 资源：128/64内部容量3808 byte/cycle，router buffer387840 bytes，NI VC buffer163840 bytes；128/56分别3584、359680、153600。buffer数字仅覆盖显式VC存储；链路及NI staging、未来relay须另列，不能当成完整面积/总存储证明。
+- 生产策略Docker测试既有PASS：4096对L路径、262144个shortcut谓词、7/8/16-byte守恒、滞回及重试。
+- Algorithm 2离线四项测试既有PASS：中心候选、阈值、端口/有向边冲突及路径约束。尚未接入旁路数据路径。
+
+## 逐项机制完成度
+
+| 核心机制 | 当前状态 | 验收边界 |
+|---|---|---|
+| 独立常开L与M、真实16/8/7-byte flit | 已实现，有限包检查通过 | 独立并发/阻塞隔离的定向压力证据待补 |
+| 拥塞动态子网选择 | 平台适配实现，真实分流检查通过 | 更多模式/压力及ordered应用待验收 |
+| M PG三态与唤醒代价 | 已实现，有限包检查通过 | 应用与边界压力待验收 |
+| Algorithm 1单调条件 | 已接入真实shortcut选择，p4有限包通过 | 通道依赖及更多压力待验收 |
+| 静态long-link / crossbar bypass | 已实现，p4/p5三种流量及背压检查通过 | 应用与建模边界待验收 |
+| 有界relay及连续字节流宽度转换 | 已实现，16↔8/7及p5背压/排空检查通过 | 应用待验收 |
+| Algorithm 2分层插入 | 离线脚本、实际独立pilot与配置集成已通过p5合成检查 | CPU/GPU应用pilot待验收 |
+| 固定平台应用及bak/TBP比较 | 未完成 | 不能引用合成PASS作为应用结果 |
+
+## 构建与失败记录
+
+`hetsub_network_p1.log`、`hetsub_network_p1_retry.log`保存旧版Params及指针比较编译失败；后续已修复。`hetsub_network_p1_retry2.log`构建成功后，容器因Git对象ID缩写差异拒绝凭据。verifier改用完整对象ID及固定diff heuristic，两端指纹已实测相同，没有手动改凭据。
+
+`hetsub_network_p1_canonical.log`构建成功，首次启动被旧统一位宽限制拒绝，后以默认关闭的异构链接参数支持真实多位宽。`hetsub_network_p2.log`构建成功，启动暴露统计对象未注册；`hetsub_network_p2_stats.log`修复注册后成功运行上述六例，暴露资源reset问题。资源reset修复已通过实际检查，时间单位与拥塞反馈修复也已通过上述九项检查。
+
+## 尚未完成
+
+用户确认GPU口径后的三仓实际平台/输入/种子和测量对齐、必要重新运行、能量/存储/时序近似最终披露及逐机制审查。已有应用正确性仅覆盖当前小输入和旧16/10模型，不能代替一致平台验收。不能用当前helper或有限包测试宣称完整复现，也不以原文性能收益为通过条件。
+
+---
+
+# Historical Report: Must-Fix Follow-Up for Synthetic Traffic Workflow
 
 ## Summary
 

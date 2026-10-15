@@ -3,16 +3,19 @@
 ################################################################################
 # docker_build_and_test_j64.sh - Docker 一键编译和测试脚本
 #
-# 功能：启动 gem5gpu-dev 容器，在 Docker 中使用 -j64 编译 gem5，然后运行测试
+# 功能：启动独立 HetSub 容器，在 Docker 中使用 -j64 编译 gem5，然后运行测试
 # 用法：在 WSL 中执行 ./docker_build_and_test_j64.sh
 ################################################################################
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONTAINER_NAME="gem5gpu-dev"
-CONTAINER_PROJECT_DIR="/home/siat/gem5-gpu-hetsub"
+CONTAINER_NAME="${GEM5GPU_BASE_CONTAINER:-gem5gpu-dev-hetsub}"
+CONTAINER_PROJECT_DIR="${SCRIPT_DIR}"
+CONTAINER_IMAGE="myubuntu14:latest"
+declare -a CONTAINER_MOUNT_ARGS=(--volume "${SCRIPT_DIR}:${CONTAINER_PROJECT_DIR}")
 JOBS=64
+PROVENANCE_GUARD="${SCRIPT_DIR}/tools/reproduction/verify_gem5_build.sh"
 
 LOG_DIR="${SCRIPT_DIR}/build_logs"
 mkdir -p "${LOG_DIR}"
@@ -47,7 +50,7 @@ log_step() {
 }
 
 check_container() {
-    if ! sudo sudo docker inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
+    if ! sudo docker inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
         log_error "找不到 Docker 容器：${CONTAINER_NAME}"
         log_error "请先创建/恢复容器，或确认容器名是否正确。"
         exit 1
@@ -58,7 +61,20 @@ check_container() {
         sudo docker start "${CONTAINER_NAME}" >/dev/null
     fi
 
-    log_success "Docker 容器已就绪：${CONTAINER_NAME}"
+    CONTAINER_IMAGE="$(sudo docker inspect -f '{{.Config.Image}}' "${CONTAINER_NAME}")"
+    log_success "Docker 基础容器已就绪：${CONTAINER_NAME}"
+    log_success "构建时强制绑定当前源码树：${SCRIPT_DIR} -> ${CONTAINER_PROJECT_DIR}"
+}
+
+run_in_container() {
+    local command="$1"
+    sudo docker run --rm \
+        --volumes-from "${CONTAINER_NAME}" \
+        "${CONTAINER_MOUNT_ARGS[@]}" \
+        --workdir "${CONTAINER_PROJECT_DIR}" \
+        "${CONTAINER_IMAGE}" \
+        /bin/bash --noprofile --norc -c "mkdir -p /tmp
+${command}"
 }
 
 check_jobs() {
@@ -69,7 +85,7 @@ check_jobs() {
         host_nproc="$(nproc)"
     fi
 
-    container_nproc="$(sudo docker exec "${CONTAINER_NAME}" /bin/bash --noprofile --norc -c 'nproc')"
+    container_nproc="$(run_in_container 'nproc')"
 
     log_info "WSL 可见 CPU 线程数：${host_nproc}"
     log_info "Docker 可见 CPU 线程数：${container_nproc}"
@@ -83,15 +99,20 @@ check_jobs() {
 }
 
 run_build() {
+    local source_before
+    source_before="$("${PROVENANCE_GUARD}" fingerprint "${SCRIPT_DIR}")"
     log_step "步骤 1/2：在 Docker 中使用 -j${JOBS} 编译 gem5.opt"
 
-    sudo docker exec "${CONTAINER_NAME}" /bin/bash --noprofile --norc -c "
+    run_in_container "
         set -e
         export CUDAHOME=/usr/local/cuda/cuda
         export PATH=/usr/local/cuda/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
         export LD_LIBRARY_PATH=/usr/local/cuda/cuda/lib64
         export ENABLE_SIMPLIFIED_PSO=1
         cd ${CONTAINER_PROJECT_DIR}/gem5
+        # Fail closed: discard the exact target so an old gem5.opt or stale
+        # object can never be blessed by a successful incremental no-op.
+        rm -rf -- build/X86_VI_hammer_GPU
         scons build/X86_VI_hammer_GPU/gem5.opt \
             --default=X86 \
             EXTRAS=../gem5-gpu/src:../gpgpu-sim/ \
@@ -100,13 +121,17 @@ run_build() {
             -j${JOBS}
     "
 
+    EXPECTED_SOURCE_SHA256="${source_before}" \
+        "${PROVENANCE_GUARD}" record "${SCRIPT_DIR}" X86_VI_hammer_GPU
+    "${PROVENANCE_GUARD}" verify "${SCRIPT_DIR}" X86_VI_hammer_GPU
+
     log_success "编译完成"
 }
 
 run_test() {
     log_step "步骤 2/2：在 Docker 中运行 backprop + kmeans 测试"
 
-    sudo docker exec "${CONTAINER_NAME}" /bin/bash --noprofile --norc -c "
+    run_in_container "
         set -e
         cd ${CONTAINER_PROJECT_DIR}
         ./run.sh both

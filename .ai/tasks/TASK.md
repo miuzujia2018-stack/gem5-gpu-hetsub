@@ -1,4 +1,78 @@
-# Task
+# Active Task — HetSub 核心机制实施（2026-10-15）
+
+## 当前交付与范围
+
+用户要求读取论文原文和 code review，设计一个尽量保留 HetSub 核心方法、尽量少改现有实验平台的比较基准，用于与 gem5-gpu-bak 和 gem5-gpu-tbp 比较，并保存 Markdown 测试/验收方案；禁止过度工程化、过度哈希。
+
+当前优先设计：[HETSUB_FAITHFUL_PLATFORM_PLAN.md](../../docs/HETSUB_FAITHFUL_PLATFORM_PLAN.md)。用户已要求开始执行复现，允许必要NoC源码改造；固定系统平台，复现机制而不复现原文性能或实验平台。此前 [HETSUB_MINIMAL_BASELINE_PLAN.md](../../docs/HETSUB_MINIMAL_BASELINE_PLAN.md) 保留为历史适配退路，不作为本次独立双子网实现规格。
+
+使用用户新授权的专用容器 `gem5gpu-dev-hetsub`，显式绑定本仓同名路径，替代旧共享容器要求。
+
+## 后续实施规格
+
+以当前优先设计第6节为准：先对齐平台，再实现独立双子网及真实flit宽度，随后加入选择/PG、静态旁路与真实relay、离线分层插入。禁止用共享两个VC或末端延迟补偿代替独立子网与真实序列化。
+
+固定系统、64个tile位置、协议、输入及实际端点映射；NoC资源按真实bit数和链路容量核算。分别保留128/64论文比例与128/56内部链路等预算配置；普通双子网和静态long-link模式独立报告。软件Router对象个数不替代硬件资源计数。旧需求文档的全部阶段不自动构成本任务范围。
+
+## 验收要点
+
+- 论文原文页码、算法和参数已核对，代码与旧 review 的限制已写入文档。
+- 实施后需满足当前优先设计第7节及旧方案仍适用的定向测试、排空、应用正确性与统一比较条件。
+- long-link 必须有真实资源占用、服务时间和背压；未完成不得宣称已覆盖该机制。
+- 保留官方干净构建与现有 verify 门禁；不新增结果哈希链或验证平台。
+- 性能提升不是正确性通过条件；保留负结果和模型近似。
+
+## 当前修复批次：拥塞信号与时间单位
+
+- 八项实际运行中七项通过；`policy_load`全部使用L，未满足真实拥塞分流验收。保持75%/50%滞回与128-cycle采样，不为跑出分流降低阈值。
+- flexible Garnet使用输出buffer，拥塞信号改为当前消息vnet的最忙transit端口VC占用比例，避免其他vnet及反方向空队列掩盖瓶颈；这是本平台的反馈范围适配，资源统计继续覆盖全部端口。
+- NetworkTest终止条件使用对象cycle，配置使用1ps全局tick；验证1GHz与2GHz运行同样周期、实际tick数与clock period相符。
+- 源码修改后官方干净构建，再运行关闭回归、宽度、拥塞和PG检查；失败保持未验收，不调整平台/输入选择性能结果。
+
+## 下一阶段静态旁路实现约束
+
+- 接受离线插入配置，构造时校验候选端点、物理有向路径（最多2-hop）、crossbar输入/输出独占和端点度数。静态模式禁止普通M注入；配置在运行期间冻结。
+- 复用NetworkLink及FlexibleConsumer接口，新增一个局部宽度转换relay类即可；每vnet一个有界帧上下文、4个输入flit槽和一个共享输出staging槽。保留原MsgPtr、生成时间和协议vnet；按连续有效字节流转换16↔8或16↔7，不能按单个宽flit补齐。
+- request/grant/release必须贯通两端及L router，包含所有在途flit的容量检查；输出tail未释放前保留该帧上下文，禁止多个包交错和无限整包缓存。
+- composite旁路引用已有M物理段，收集各段实际传输，独占对应资源；不调用中间普通RC/VA/写buffer。共享原NI本地服务预算，新增relay端口不得免费增加tile注入/弹出带宽。
+- Router只在Algorithm 1严格单调区间内选择已冻结捷径，越界/反向走原L路径；ordered vnet保持单一VC及确定性路径。
+- 首先覆盖单条、双条、冲突拒绝、72-byte以上长帧、56-bit跨宽flit边界、目标背压恢复、所有上下文/VC/link排空；再连接独立pilot生成的Algorithm 2配置。
+- 时序与存储列明建模假设；原文logical-hop抽象与保守物理传播分别测试，不声称已经证明2GHz硬件时序。
+
+## 当前实施批次：静态旁路
+
+新增HetSubRelay局部类（继承ClockedObject/FlexibleConsumer），构造阶段接入原M链路代理与新增本地L接入。NetworkLink增加冻结旁路段记账及二路本地MUX，Router增加严格单调shortcut端口、有限staging和实际活动计数。配置从离线JSON读取，校验所有物理段与crossbar资源冲突；默认off/dual不启用旁路。先以固定单条/双条配置测试，未通过不得宣称核心机制完成。源码修改后必须官方干净构建，再执行新旧模式检查。测量存储包括新增relay及本地输出VC，明确composite传播时序假设。
+
+## 接续批次：实际pilot与背压证据
+
+p4十五项检查已PASS。接续增加源NI实际接受的tile流量矩阵导出（独立pilot CSV，使用现有Stats reset语义）、relay下游阻塞周期和本地MUX延后计数；添加三种traffic压力与pilot→Algorithm 2→冻结配置的独立测试。pilot与最终验证采用不同seed，配置只读取pilot，不读取测试未来消息。修改后重新执行官方干净构建与门禁，p4结果不得替代新版本验收。
+
+## 当前批次：packet测量与应用
+
+- 在最终NI交付tail时为原始消息各记一次service、源排队、完成延迟与最大完成延迟，保留relay原始生成时间；off/dual/static相同定义。禁止把relay分段flit平均延迟当packet延迟。
+- 实际内部Link记录同tile L/M同周期前进、M唤醒期间L前进、L满时M前进，用于独立性验收。
+- 官方干净构建Network_test后验证新增计数和旧20案例；官方应用目标干净构建与backprop/kmeans测试。
+- 当前bak默认配置已变为ALPHA（8dir、8L2、40cluster），与本仓/TBP的4dir、40L2、16cluster不同；不修改平台追随该默认，后续比较通过显式参数对齐并核对实际端点映射。bak placement用random_seed，本仓/TBP用topology_seed，同seed名字不等于映射相同。
+
+## 当前独立验收：资源和PG
+
+在GPU口径待确认期间，仅审查已有数据和NoC模型，不改变平台。核对实际内部/外部链路宽度、router/NI/relay/staging存储，验证PG状态周期分解及每次10-cycle静态功耗等价的WU记账。原文IV-A明确6-cycle WU、10-cycle break-even；无同工艺系数时不输出J或节能百分比。资源账必须区分独立外部线路宽度与NI共享服务上限，pipeline/control/短接线未校准不能写成完整面积。
+
+## 当前状态
+
+**状态：等待用户确认 GPU 配置口径。** 同一配置差异已连续三轮复核，仍然存在；先前异步问题尚无答复。按AGENTS固定CPU/GPU约束，不擅自把GPGPU-Sim从16 clusters改为10，也不把硬编码10个gem5 GPU端点改为16。独立于该选择的核心实施、合成/应用数值、资源与PG审查已完成当前检查。剩余一致平台比较依赖该选择；目标完整保留，未标记完成。
+
+恢复条件：用户确认三仓显式10 clusters以保留当前10个GPU端点；或提供另一份明确的固定平台配置。随后对齐实际controller/cache/时钟/输入/seed，遵守对应源码及二进制构建门禁，执行三仓比较和最终审查。
+
+p6已完成21项网络检查（含同tile独立性/双向阻塞隔离、packet完成统计、实际配置通道依赖）、官方应用目标干净构建及10个应用数值检查（off及dual/static两宽度）和独立应用pilot。数据与具体命令、首次旧Bash失败/后续修复证据见REPORT。
+
+正式三仓比较仍未完成：发现本仓/TBP gem5 GPU核数硬编码10而GPGPU-Sim配置16，bak无此硬编码且默认系统已变更。已请求用户确认是否三仓显式10 clusters、保留当前10个端点；答复前保持原GPU配置，不把当前应用机制读数称作一致平台比较。后续需共同输入/种子、实际cache/controller映射验证、必要重跑及最终方法近似/资源/时序披露审查。当前进程退出仍有少量在途消息，延迟统计人群必须明确，不能声称应用全网排空。目标继续保持完整。
+
+当前源码范围：flexible-pipeline的GarnetNetwork、GarnetLink、NetworkLink、Router、NetworkInterface、flit及HetSubPolicy；配置Ruby.py/HetSub.py；必要构建入口、tools/hetsub测试及交接文档。默认off须保持兼容，dual中L/M各使用独立Router实例与物理数据通道。验收必须涵盖后续所有核心机制，不得以当前策略测试缩减最终目标。
+
+---
+
+# Historical Task — Synthetic Traffic Workflow
 
 ## Goal
 
