@@ -1,5 +1,11 @@
 # Review — HetSub 最小适配设计（2026-10-15）
 
+## 2026-10-16 全面 Code Review
+
+最新完整审查见 [HetSub 方法复现全面 Code Review 与下一阶段研究计划](../../docs/HETSUB_COMPREHENSIVE_CODE_REVIEW_AND_NEXT_PLAN_20261016.md)。本轮直接核对论文全文、冻结源码和已有原始产物，未修改核心代码、未重新运行仿真。结论：未发现新的 P0/P1；核心机制均进入真实数据路径；动态选择、local/global 定义及 composite shortcut 时序属于已披露的平台适配。裁决为方法完整性 `CONDITIONAL`、算法正确性 `PASS`、固定平台性能基准资格 `PASS（限定）`，综合 `CONDITIONAL APPROVE / FREEZE`。
+
+下一阶段不再开发机制或扩充测试矩阵，只执行文档定义的 `GOAL-HS-R2`：论文级证据—主张闭环和负结果分析。`review_independence: same-family`；`acceptance_status: provisional`。
+
 ## GOAL-HS-N1 最终独立 Code Review（2026-10-16）
 
 **Verdict: APPROVE — GOAL-HS-N1 P1 最小闭环完成；继续保留 10-cluster 固定平台 HetSub 核心机制复现的限定性批准。** 本轮审核以父仓 `50b52f0a552f7612925e58de72d2348baf7f7217` 为冻结基线，比较 `d2c1a4a...50b52f0a`（3 个提交，10 个修改/新增文件）；父仓五个子模块 gitlink 未改变。**无已确认 P0；本审查未运行仿真，也未读取被忽略的本地原始 `m5out`、build 凭据及 reanalysis JSON。** 因此“22 项全部 PASS / 重分析 ok:true”属于提交报告中的运行证据声明，不是本次 GitHub 审查独立重跑的结论。本裁决认可源码、定向断言和报告链相互支持的范围。

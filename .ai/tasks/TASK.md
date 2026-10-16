@@ -1,5 +1,11 @@
 # Active Task — HetSub 核心机制实施（2026-10-15）
 
+## 2026-10-16 全面 Code Review 后的当前任务
+
+最新权威审查与下一阶段计划为 [HetSub 方法复现全面 Code Review 与下一阶段研究计划](../../docs/HETSUB_COMPREHENSIVE_CODE_REVIEW_AND_NEXT_PLAN_20261016.md)。裁决为：方法复现完整性 `CONDITIONAL`、算法与功能正确性 `PASS`、固定平台性能基准资格 `PASS（限定）`，综合 `CONDITIONAL APPROVE / FREEZE`。
+
+当前没有未闭环的核心数据路径机制，不修改 flexible-pipeline，不重复运行正式实验。下一阶段唯一目标 `GOAL-HS-R2` 是基于现有 v2 数据完成论文级机制—证据—主张闭环、负结果解释和公平性披露。仅当出现文档第 8.3 节的具体反例或用户明确扩张研究范围时，才重新打开核心实现。
+
 ## 收口裁决（2026-10-15）：GOAL-HS-N1 已 APPROVE，HetSub 方法复现正式冻结
 
 独立 Code Review 终审通过（`.ai/reviews/REVIEW.md`，提交 `2707194e`）：N1-1 物理/虚拟活动统计 PASS、N1-2 level-2 机制 PASS、N1-3 按已提交 22 项运行报告通过、未发现新增 P0。不要求继续开展 N1 实验。
