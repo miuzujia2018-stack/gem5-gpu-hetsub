@@ -1,5 +1,26 @@
 # Review — HetSub 最小适配设计（2026-10-15）
 
+## GOAL-HS-R2 P1 修正后封口复核（2026-10-16）
+
+**FINAL VERDICT: R2 CLAIM GATE CLOSED / PASS（限定）；method_status: CONDITIONAL APPROVE / FREEZE；r2_claim_status: PASS（within frozen evidence）；review_scope: 文档与科学主张一致性；review_independence: same-family。**
+
+对父仓 `9211244efc1eb6bbac0667ba2ff3d496bc345c9c`（前一审查基线 `8cfa9e23` 之后）进行 GitHub 提交级复核：唯一变更为 `docs/HETSUB_R2_CLAIM_EVIDENCE_AND_LIMITATIONS_20261016.md` 和 `.ai/reports/REPORT.md`；五个 gitlink 未变。没有改动 gem5/flexible-pipeline、配置或算法，也未重新运行仿真。本轮不重新查验本地忽略的 `m5out` 原始运行文件及构建凭据；原始 stats/profile/audit 的重新核对属于执行方已有报告，以下可独立验证提交的公式、差分与算术。
+
+**上次五项审查意见（`8cfa9e23`）状态：全部 CLOSED。**
+
+- **R2-F01 — PASS：** `link flits 3.564×` 与 `physical wire MB 3.553×` 属各链路累计活动而非注入端 flit 序列化计数。报告已转为“长路径/累计 hop 活动主导、与观察一致”，明确 L 为 16 B、off 为 16 B。窄通道的 flit 代价只在具体宽度变体中描述；不进行未经实验隔离的精确贡献分解。
+- **R2-F02 — PASS：** M sleep 比例只说明低活跃和潜在漏电节省窗口；wakeups、6-cycle waking、10-WU 记账不再被用于宣称 PG 净节能或 PG 不适用。缺少工艺功耗模型时不报告 J/W。
+- **R2-F03 — PASS：** pilot eligible-region 比例 249744/1004752=24.8563%、264608/1072856=24.6639%；正式同一 static8 运行的 relay-converted/injected 比例 384216/1004808=38.2378%、417256/1072784=38.8947%。统计集合、分母、包含 transit/控制帧及“不直接同比”限制已经写明；不得称为同定义命中率变化。
+- **R2-F04 — PASS：** 128/56 较差仅限定 static；dual7 与 dual8 的 backprop 总 tick 差为 −36000，kmeans 为 +196000，近乎持平且方向相反；不再声称所有变体均恶化。
+- **R2-F05 — PASS：** 5.86/26.14、5.87/26.52 为 pilot 几何潜在距离，不是正式运行中实际 hop；公式 `Σ bytes(s,d)·d(s,d)/Σ bytes(s,d)`、Manhattan XY、Hilbert rank 差及 profile 路径均已写入 R2-4；明确这只是与趋势一致的机制假设而不是已分离的主因。
+
+**闭环范围：** R2-0/R2-1/R2-3/R2-4 维持原有限定通过；R2-2 `NEED FIX → PASS`；R2-5 reviewer claim consistency 完成。原论文平台/性能与 RTL/面积/功耗仍属范围外；应用在退出时 8–47 个消息在途，有限包排空不能替代应用全网排空；128/56 只匹配内部链路预算；跨仓比较不等于纯路由单因素因果。上次终审中的 `NEED FIX` 是针对旧提交 `1963ba19` 的历史记录，现由本节取代。
+
+**后续处置：** 保持 core source 与 `formal_10c_v2_20261015` 数据冻结，不要求重新构建、不重跑 22-case/16 应用、不再开 R2 实施阶段。若论文新增超出本闭环的严格因果主张或更强能耗/面积主张，应另行评估证据，不自动扩大现有批准。
+
+---
+
+
 ## GOAL-HS-R2 独立科研终审（2026-10-16）
 
 **裁决：R2 方法冻结与证据整理原则通过；R2-2 负结果“因果链”目前 NEED FIX（P1：仅论文/文档解释，不是核心算法缺陷）。** `review_scope: documentation/claims`；`method_status: CONDITIONAL APPROVE / FREEZE`；`r2_claim_status: CONDITIONAL / NOT PAPER-READY`。审核基线为父仓 `1963ba195e536231001bc7918cb664c743242f49`，文件 `docs/HETSUB_R2_CLAIM_EVIDENCE_AND_LIMITATIONS_20261016.md`，并对照 `docs/COMPARISON_10C_RESULTS.md`、`.ai/reports/RESOURCE_AUDIT.md`、`tools/hetsub/insert_shortcuts.py`、已有算法/统计审计代码。该提交只改 R2 文档和 REPORT；未触及源码或子仓 gitlink。**本终审未访问本地忽略的 `m5out`、原始 JSON、构建二进制，亦未重跑仿真。** 已报告的 verify/test PASS 作为既有运行证据接受，而非独立重新运行。
