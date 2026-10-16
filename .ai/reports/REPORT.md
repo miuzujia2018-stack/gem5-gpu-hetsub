@@ -302,3 +302,14 @@ R2 全部条目完成；方法保持冻结。最终 Code Review 由用户执行�
 - 五项发现复核结果：F01 PASS（链路累计活动与宽度转换明确区分）、F02 PASS（保留状态证据、不推断净节能）、F03 PASS（两指标独立命名、正式分母来自同一 static8 运行）、F04 PASS（仅 static7 更慢，dual7 差异小且方向不一致）、F05 PASS（机制假设 + 复核公式）。
 - 后续科研处置：维持核心源码与 `formal_10c_v2_20261015` 数据冻结；不增加实验、不修改算法、不因负收益调参、不重跑 22-case/16 应用。现有成果进入论文写作与方法比较阶段，须保留已确认的平台、时序、资源和因果解释边界；超出本闭环的更强因果/能耗/面积主张须另行评估证据。
 - 本记录为执行侧封口登记；`.ai/reviews/REVIEW.md` 未修改。
+
+## GOAL-HS-R3 源码深审与最终裁定（2026-10-16）
+
+交付物：`docs/HETSUB_R3_DEEP_SOURCE_REVIEW_AND_ADJUDICATION_20261016.md`。只读审查：无源码修改、无新仿真、无 22-case/16 应用重跑；不继承既有审查文档的 PASS 结论。
+
+- 论文全文独立读取（TVLSI 33(11) 3131–3144, 2025, DOI 10.1109/TVLSI.2025.3597406，14 页 pdftotext 提取）。关键原文：p. 3143 Section V "This process is currently static… In future work, we plan to enable long-range links dynamically"；p. 3136 III-B-1 "preloaded… in the form of special packets"；p. 3135 III-A-2 拥塞定义（全端口总占用、置位/复位阈值、状态保持、双向比例、无采样周期）；p. 3136-3137 Algorithm 1（shortcut 终点须在路径上）；p. 3138 Algorithm 2（分层、排除相邻、阈值、严格层级优先、无 2×2、≤2 hop、crossbar≤5、每节点≤2 入/出）；p. 3139 IV-A（WU 6、break-even 10）。
+- 实际数据路径逐行核对：`HetSubPolicy.hh`（几何/滞回/比例/preview）、`HetSubRelay.cc`（request/grant/release、守恒 fatal_if、背压）、`GarnetNetwork.cc`（hetChoose 325-343、initHetLinks 221-257、initHetShortcuts 260-311）、`NetworkLink.cc`（共享 MUX 128-174、bypass 独占 176-188）、`Router.cc`（getRoute HetSub 路径 1320-1345、hetCongestion 2375-2389、PG 2392-2464）、`NetworkInterface.cc`（flitisizeHetMessage 301-346、接收 MUX 412-425、delivery 423-464）、`HetSub.py`（冻结 JSON 79-113）。
+- 只读门禁本轮执行：verify 门禁两目标均 BUILD-PROVENANCE VERIFIED（source `a5470ae3…`，binary `1bef3876…`/`9f5ed9cb…`）；`test_insertion.py` 5 项 OK；`check_dependencies.py`（static_level2 config.ini）4096 路径、acyclic；`validate_network.py` 抽读 independence/static_level2/policy/pg_mesh/static8/line/mesh8 全部 PASS。
+- 重裁结果：HS-CR-01 由 P1-QUESTION 降为 P2（论文演示即静态，动态为论文明确 future work）；HS-CR-02/03/04/05/06 维持 P2。新增观察均为 P2（每节点 long-link 上限 1 比原文 ≤2 更严；拥塞范围为每 vnet 最忙 transit 端口；PG 为周期记账代理）。无新的已确认 P0/P1。
+- 三个研究问题裁定：Q1 不要求运行时连接变化、冻结 JSON 非方法缺陷（P2）；Q2 有序 vnet 固定 M 满足 Ruby 按序交付前提、方向偏离原文优先级（P2）；Q3 事件驱动采样不违反论文（论文无采样周期），范围与 128-cycle 门为已披露近似（P2）。
+- 最终决定：**STOP / FREEZE**，维持 CONDITIONAL APPROVE / FREEZE；下一阶段唯一目标为论文方法描述与公平性边界核对，不新增实验。`.ai/reviews/REVIEW.md` 未修改。
