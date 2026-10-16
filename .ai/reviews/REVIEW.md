@@ -1,5 +1,26 @@
 # Review — HetSub 最小适配设计（2026-10-15）
 
+## GOAL-HS-R3 最终定向独立审查（2026-10-16）
+
+**VERDICT: APPROVE（研究范围限定）/ STOP / FREEZE**；审查基线 `65c16fa43d28818a0fc484bcd64ddc5797b39f87`；`method_status: CONDITIONAL APPROVE / FREEZE`；`scope: HetSub fixed-gem5-gpu method fidelity, not original experimental/performance/RTL/power reproduction`。此次 GitHub 审查直接比对 R3 报告、提交差分、冻结 `gem5` 源码 `a90c04ca...`、插入脚本和五个父仓 gitlinks；**未直接读取原论文 PDF，本轮未接触 ignored 本地 m5out 原始日志，未独立执行报告声称的 BUILD-PROVENANCE、验证器或仿真**。原文页码/引用与本地执行结果属于 R3 执行报告给出的证据，需按这个证据等级引用，不能称本审查独立重跑。
+
+### Findings first
+
+1. **Q1 / HS-CR-01 — P1-QUESTION → P2，接受。** R3 报告记录原文 p.3143 Section V 将当前过程表述为 static、动态增加 long-range links 为 future work；p.3136 special-packet 预载是硬件配置下发形式。直接检查 `gem5/configs/ruby/HetSub.py:76-113` 构造期读取 JSON，`GarnetNetwork.cc:260-311` 构造绑定资源；当前 frozen 配置实现静态行为，**不构成已确认核心机制缺失**。注意不能将其推广成“运行期任意动态重配置已实现”。
+2. **Q2 / HS-CR-02 — P2，接受。** `GarnetNetwork.cc:330-342` 中 static 先返回 L、dual ordered 选 M；`HetSubPolicy.hh:98-103` ordered 偏好 M。单子网 + 首 VC 的机制旨在保护 Ruby ordered vnet；与原文 L 优先方向存在差异，但未有可达错误交付/乱序反例，不构成新的 P0/P1。**不等于已形式化证明所有 Ruby 负载的顺序正确性**。
+3. **Q3 / HS-CR-03 — P2，接受。** `GarnetNetwork.cc:333-340` 的拥塞更新受选网请求与 128-cycle 间隔门控制；`Router.cc:2375-2389` 为 per-vnet 最忙 transit 输出，而非全端口总占用。R3 报告称论文无独立采样周期规定；滞回及比例状态保持在 `HetSubPolicy.hh:77-110` 实现。应将其继续标为**采样与观测定义的平台近似**，不可写严格等价。
+4. **R3-DOC-01 — P2，非阻断，文字应收窄。** `docs/HETSUB_R3_DEEP_SOURCE_REVIEW_AND_ADJUDICATION_20261016.md` 关于“每节点 long-link 入/出上限 1”的措辞过宽。实际 `HetSub.py:92-103` 和 `insert_shortcuts.py:73-107` 分别使用 `(tile, upstream/downstream port)` 或 `(tile, direction)` 的端口冲突集合，**不是按 tile 总计数禁止所有第二条路径**；相同 tile 可以在不同未冲突端口参与其他 shortcut，例如作为一条的 L 源端点、另一条的物理中继。能直接确认的更窄结论是：同一 tile 的 local 接入/弹出位置（`-1`/`L`）不可同时分配给两个相同方向的 shortcut，物理中间段按端口和有向边冲突拒绝。当前已冻结正式配置无需重新审定；此为限制描述精确性，不是算法缺陷。
+5. **R3-DOC-02 — P2，非阻断，示例命令路径应更正。** R3 第 7 节先 `cd tools/hetsub` 后再用相对仓库根目录的 `m5out/hetsub_network/...` 参数调用 `check_dependencies.py`/`validate_network.py`，照抄会指向 `tools/hetsub/m5out` 而非根目录下的 `m5out`。应改为在仓库根目录使用 `python3 tools/hetsub/check_dependencies.py m5out/.../config.ini` 与 `python3 tools/hetsub/validate_network.py m5out/.../<case> <case>`，或在工具目录用 `../../m5out/...`。该展示命令缺陷**不能反推出本地已执行测试失败**，也不要求重跑。
+
+### 证据、边界与最终处置
+
+- R3 所报两项构建 VERIFIED、5 项插入测试、4096 route acyclic、七项既有目录 validator PASS，**按既有执行侧记录接受**；此次只从提交 diff 确认文档变更与五 gitlink 不变，未重放上述证据。
+- `GOAL-HS-N1`、`GOAL-HS-R2` 关闭状态不变。PG 的 WU 是周期成本代理，活动量非 J/W；composite bypass 不等于 RTL/线长校准；应用退出有 inflight；原论文 SNN 结果和完整面积等价均属范围外；已观察负收益继续保留。
+- **没有新 CONFIRMED P0/P1；无新的实现 Goal、重建、重跑 22-case/16 应用或参数优化。** R3-DOC-01/02 只应在论文写作/文档整理时顺手修正，**不是新的阻断性整改门或批准前置**。后续唯一研究工作是将已有机制—代码—证据矩阵写进论文方法章节，并逐项核对 R2-3 公平性与主张边界。
+
+---
+
+
 ## GOAL-HS-R2 P1 修正后封口复核（2026-10-16）
 
 **FINAL VERDICT: R2 CLAIM GATE CLOSED / PASS（限定）；method_status: CONDITIONAL APPROVE / FREEZE；r2_claim_status: PASS（within frozen evidence）；review_scope: 文档与科学主张一致性；review_independence: same-family。**
