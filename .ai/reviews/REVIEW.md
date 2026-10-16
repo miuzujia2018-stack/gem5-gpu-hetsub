@@ -1,5 +1,38 @@
 # Review — HetSub 最小适配设计（2026-10-15）
 
+## GOAL-HS-N1 最终独立 Code Review（2026-10-16）
+
+**Verdict: APPROVE — GOAL-HS-N1 P1 最小闭环完成；继续保留 10-cluster 固定平台 HetSub 核心机制复现的限定性批准。** 本轮审核以父仓 `50b52f0a552f7612925e58de72d2348baf7f7217` 为冻结基线，比较 `d2c1a4a...50b52f0a`（3 个提交，10 个修改/新增文件）；父仓五个子模块 gitlink 未改变。**无已确认 P0；本审查未运行仿真，也未读取被忽略的本地原始 `m5out`、build 凭据及 reanalysis JSON。** 因此“22 项全部 PASS / 重分析 ok:true”属于提交报告中的运行证据声明，不是本次 GitHub 审查独立重跑的结论。本裁决认可源码、定向断言和报告链相互支持的范围。
+
+### Findings first（N1 封口）
+
+1. **N1-1 / P1 — CLOSED（固定平台统计口径）。** `tools/hetsub/audit_comparison.py:89-91,190-221` 将 `het_relay_links*` 归为虚拟 relay 接入，其余当前冻结配置登记通道归入物理；输出 `registered_channel_activity_bytes`、`physical_wire_bytes`、`virtual_relay_access_bytes` 及 `physical_link_load_jain`。`docs/COMPARISON_10C_RESULTS.md:9-39` 将物理/虚拟活动分列，仅物理链路参与表中 Jain。静态 backprop 128/64 的 `38.27+1.42=39.69 MB`，kmeans 128/64 的 `41.37+1.54=42.91 MB`，与旧“全部登记通道”数值一致；非 static 无虚拟 relay 活动，指标不应改变。**已纠正的只是指标语义及离线计算，不是重新计时、能耗测量或源仿真行为变更。** `link_peak_to_mean` 仍使用所有登记链路，若未来使用须标记为 all-registered metric，不得误称物理峰均比。分类器 `else physical` 对未来未知通道名称不是 fail-closed，但在本次冻结命名范围内不构成阻断；后续新增链路类型时才需复审分类规则。
+2. **N1-2 / P1 — CLOSED（level-2 选择及实际旁路承载）。** `tools/hetsub/fixtures/profile_level2.csv` 只有 (10→17, 1152 B)，`static_level2.csv` 的全部 level-1 为 `below_threshold` 且只有 `2,10,17,1152,selected`；`static_level2.json` 冻结路径 `[10,9,17]`。`tools/hetsub/test_insertion.py:46-57` 直接断言选择、层级与唯一性。运行入口 `run_network_checks.sh:54-57` 使用 static/56-bit M/transpose/16 包每 tester；`validate_network.py:120-133` 核验运行配置路径、第一 relay `completed_frames>=16`、两 relay 收发帧/flit 对等、真实旁路 segment beats 与统计一致，通用校验同时检查总 packet/bytes/flit 守恒、排空、M 普通 RC/写 buffer 为 0。这是一条**真实运行路径的可执行验收门**，不是只查看离线配置。报告声称 48 帧、1792 B、136→294 flits、1176 segment beats；独立算术复核：`22×72+26×8=1792`、`22×5+26×1=136`、`22×11+26×2=294`、`294×4=1176`，相互一致。**注意：`completed_frames>=16` 及聚合计数只能证明冻结 level-2 relay 的实际使用；并不能逐包归因证明 tester 10 的每一个包均走该捷径。当前 TASK 验收只要求实际命中，而非该更强命题。**
+3. **N1-3 / P1 — ACCEPTED AS REPORTED。** `run_network_checks.sh:16` 在原 21 项上只增 `static_level2` 一项；`.ai/reports/REPORT.md` N1 节记一次 22 案例全 PASS（exit0，目录 `m5out/hetsub_network/20261015T152707Z`），5 个插入单元测试通过。历史 `20261015T151741Z` 首次“帧数必须恰好16”断言失败已经记录；失败源于过强的**测试归因假设**，不是证明被测数据路径丢包，后修为 `>=16` 仍要求路径、守恒与排空。本审核未取得原始 stdout/stats，故不写“独立复核 22/22 日志”。
+4. **N1-4 / P1 — CLOSED BY THIS REVIEW。** 提交成果与审查路径固定；源码 diff 不涉及 `gem5/`、`gem5-gpu/`、`gpgpu-sim/` 等指纹仓；脚本中仍于每次模拟前调用 `verify_gem5_build.sh verify`。只改父仓文档与 helper，不因本评审触发 gem5 官方干净重建；不授权再次运行正式三仓 16 个应用实验。
+
+### 本次终审按不变量的验收表
+
+| 机制/门槛 | 源码、测试器或受检证据 | 判定及边界 |
+|---|---|---|
+| 已有正式应用平台与数值正确性 | `docs/COMPARISON_10C_RESULTS.md`，历史 v2 审计 | **维持此前有限 APPROVE**；不是本次重新执行的结果 |
+| 统计区分物理与虚拟通道 | `audit_comparison.py:89-91,190-220`；结果表静态行的加法可复核 | **PASS（静态定义/算术）**；reanalysis JSON 的 `ok:true` 为本地报告，未在此独立打开 |
+| Algorithm 2 level-2 唯一选择 | `test_insertion.py:46-57`、两份提交的 fixture | **PASS（源码断言可检查）**；报告称 5 tests OK |
+| level-2 frozen bypass 真正使用 | `run_network_checks.sh:54-57`，`validate_network.py:120-133`；报告 48 frames/1176 beats | **PASS（设计与已报告运行吻合）**；缺 per-source flit 路径归因，但该更强主张未作为验收 |
+| 有限包守恒与排空 | `validate_network.py:33-49,82-151`：1024 received/injected、有效 bytes、flits、relay、`het_busy_resources=0`；报告数值一致 | **PASS（报告 + 断言）**；不得将此转移为应用退出全网排空 |
+| PG、背压、流控、非法配置拒绝 | 原有测试断言 + REPORT N1-3 声明 22/22 | **维持通过（非独立重跑）**；不做多余新矩阵 |
+| 性能/面积/能量外推 | `COMPARISON_10C_RESULTS.md` 明确负结果、内部链路预算、代理统计 | **仅限固定平台迁移评估**，不批准论文收益/RTL/工艺 J/W/硬件面积等价的外推 |
+
+### 最终裁决、科研建议与范围
+
+- **GOAL-HS-N1 关闭，两个 P1 已有最小充分机制证据；无需为此增加任何实验。** 本次无新的已确认 P0。对 `N1-1` 输出的“physical wire MB”应始终附上“登记物理通道上的 flit×width 活动代理”的口径，不能当作耗能、实际线长或芯片面积。
+- **48≠16 为合理现象而非修改成功标准**：源节点之外的包亦可抵达 router 10，符合 Algorithm 1 单调条件后使用相同静态 relay；测量只证明聚合路径活动及全网守恒。若将来论文需要声称“指定源的16包全部命中”，须另补逐源计数，但**不是本任务的 P1 或后续强制前置**。
+- 正式应用均为未全网排空的退出时点统计（在途 8–47），服务延迟人群严格为已接收消息；不得写零丢包/全应用包排空。HetSub 在 backprop/kmeans 上的负收益继续保留；不因负结果修算法或补无关 workload。
+- 本次只更新 `.ai/reviews/REVIEW.md`；后续若没有新的、可定位的机制反例或核心科学问题，应**冻结代码与实验**，无需另开 GOAL 或扩充 matrix。审核报告旧批次段落是历史记录，以上裁决优先。
+
+---
+
+
 ## 最终复现审查（10-cluster固定平台）
 
 ### Findings first
