@@ -324,3 +324,14 @@ R2 全部条目完成；方法保持冻结。最终 Code Review 由用户执行�
 证据边界（终审自述）：终审核对了已提交报告与对应源码，未独立重开论文 PDF、未本地运行构建/测试；对论文措辞与七项只读门禁的接受依赖 R3 执行侧证据。
 
 下一阶段唯一目标：论文方法描述（机制—代码—证据矩阵）与公平性边界核对（R2-3 清单），不新增仿真、算法或测试扩展；仅在出现具体关键机制反例或用户明确扩张研究范围时重新打开核心实现。`.ai/reviews/REVIEW.md` 未修改。
+
+## GOAL-HS-R4：方法描述、公平性审查与文档交付（2026-10-16）
+
+交付物：`docs/HETSUB_R4_METHOD_DESCRIPTION.md`、`docs/HETSUB_R4_FAIRNESS_AND_CLAIMS.md`、`docs/HETSUB_R4_CLAIM_EVIDENCE_INDEX.md`。只读复核：无源码/配置/实验结果修改、无重跑、无新测试矩阵、无新增哈希系统。
+
+- **前置上报（已解决）**：R4 目标文件 `docs/GOAL_HS_R4_METHOD_EVIDENCE_FAIRNESS_READONLY_20261016.md` 在本地执行开始时不存在（工作区、`.ai/` 与全部 git 提交含 `--all --diff-filter=A` 均无），按 CLAUDE.md 升级规则上报；随后经 `git fetch` 确认其存在于远端（提交 `60df5cb6`，父为 R3 封口 HEAD `a2459724`），本地非破坏性 rebase 纳入后，本次执行以该冻结目标文件为准。R4-0 基线门禁：五个 gitlink 与目标文件所列冻结 SHA 完全一致；flexible-pipeline/tools 最后源码提交 `50b52f0a`（N1）早于 R3 封口，无 R3 后核心修改；REVIEW.md 最新结论仍为 R3 APPROVE（研究范围限定）/ STOP / FREEZE。
+- 只读门禁本轮复核：两个 verify 门禁均 BUILD-PROVENANCE VERIFIED（source `a5470ae3…`，binary `1bef3876…`/`9f5ed9cb…`）；`test_insertion.py` 5 项 OK；`check_dependencies.py` 4096/130/129 acyclic；`validate_network.py` 七 case PASS（independence 10,557/2,559/10,990；static_level2 1,176 beats/202 stalls/19 deferrals；pg_mesh 725,371/212/1,272；static8 372/6/0）。
+- A-1…A-7 逐项映射至论文锚点、源码 `file:line` 与现有证据，标注证据类型（源码直接证明/历史运行/推断/未验证）；无新增已确认 P0/P1，R3 的 P2 观察全部维持且无具体可达反例，不升级为阻塞缺陷。
+- 可复现重算核对：加权几何距离与 eligible-region 分式与 R2 记录精确一致（5.8588/26.1440、5.8741/26.5222；24.8563%/24.6639%）；relay ÷2 分式精确复现（384,216/417,256 → 38.24%/38.89%）。两项文档精度 P2：F-R4-01（R2-2(1) 的 ≤2 占比 5.68%/5.27% 精确复现于 p6 pilot profile 307/323 流，而 R2-4 所引正式批次 pilot profile 为 299/355 流，按该定义复算为 5.5082%/5.4196%）；F-R4-02（R2 未加权 5.25/21.33 对应含自对的 4096 分母，按 R2-4 声明的 64×63 分母为 5.3333/21.6667）。均不改变定性结论。
+- 负结果逐字保留（backprop +4.80%…+6.46%、kmeans +12.68%…+17.13%），未调参、未换负载、未改统计口径。GPU 16/10 不一致口径仍待用户确认。
+- 裁定：**PASS（含 P2 精度注记）→ R4-DOC CLOSED / CORE FREEZE RETAINED**。`.ai/reviews/REVIEW.md` 未修改。
