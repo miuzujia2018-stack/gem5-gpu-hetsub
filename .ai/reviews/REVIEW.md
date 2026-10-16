@@ -1,5 +1,37 @@
 # Review — HetSub 最小适配设计（2026-10-15）
 
+## GOAL-HS-R2 独立科研终审（2026-10-16）
+
+**裁决：R2 方法冻结与证据整理原则通过；R2-2 负结果“因果链”目前 NEED FIX（P1：仅论文/文档解释，不是核心算法缺陷）。** `review_scope: documentation/claims`；`method_status: CONDITIONAL APPROVE / FREEZE`；`r2_claim_status: CONDITIONAL / NOT PAPER-READY`。审核基线为父仓 `1963ba195e536231001bc7918cb664c743242f49`，文件 `docs/HETSUB_R2_CLAIM_EVIDENCE_AND_LIMITATIONS_20261016.md`，并对照 `docs/COMPARISON_10C_RESULTS.md`、`.ai/reports/RESOURCE_AUDIT.md`、`tools/hetsub/insert_shortcuts.py`、已有算法/统计审计代码。该提交只改 R2 文档和 REPORT；未触及源码或子仓 gitlink。**本终审未访问本地忽略的 `m5out`、原始 JSON、构建二进制，亦未重跑仿真。** 已报告的 verify/test PASS 作为既有运行证据接受，而非独立重新运行。
+
+### Findings first
+
+1. **R2-F01 / P1 科研归因：把 3.56× link flits 定性为“窄 M 序列化代价”不成立。** R2-2(2) 的 backprop `914,547 → 3,259,418` 个 link flits 与 `14.63 → 51.98` MB **都是各链路上的传输累积，包含 path hop 数**，不是同一条信息在注入端拆成多少 flit 的直接度量。两种统计的倍数分别为 **3.564×、3.553×**；其比值说明每个已登记的链路 flit 平均 `14.63e6/914547≈16.00 B`（off）与 `51.98e6/3259418≈15.95 B`（dual8）。dual 的常开 L 仍为 16 B，M 路由器的休眠比例极高。现有数据**更符合链路经过的跳数/长路径活动主导增长**，不允许据此声称 M 8/7 B 序列化是 3.56× 的主因。可保留“窄通道具有实际 flit 转换成本”，但应只用真实 M/relay 的宽度转换 flit 计数举证，勿把累计 link flits 跨配置之比直接等同序列化。
+2. **R2-F02 / P1 PG 推理方向不充分。** R2-2(3) 由 `99.93%/99.89%` M router-cycles 为 sleep，推断“PG 前提不成立”，逻辑上过强。长时间 sleep 证明 M **低活跃**，同时也说明存在潜在漏电节省窗口；`wakeups×6`、`wakeups×10` 恒等仅证明状态机/成本记账。PG 净收益或前提是否满足**必须有功耗模型及对照**才可判断。应改为“本负载 M 路由使用稀少，独立 M 网络对当前时延的贡献有限；PG 能量净效应未知”，并将“原文局部性假设不匹配”单独归因于 pilot ≤2 字节比例。
+3. **R2-F03 / P1 shortcut 的“24.9% vs 38.2% 命中率”不可直接同比。** `insert_shortcuts.py:31-55` 的 `flow_bytes` 是**child-region 之间的离线聚合字节**，而 R2 的 `384,216/417,256` 是正式运行中 **relay 输入接入侧转换的聚合 bytes（含控制 frame 与允许的 transit traffic）**；它们不代表同一集合的“选中源目的 flow 命中率”。报告 `38.2%/38.9%` 恰好等于 `384216/1004744` 与 `417256/1072864`，后两个分母见 `RESOURCE_AUDIT.md` 的 **pilot profile 总有效字节数**；正式运行 `bytes_injected` 若相同，仍须用同一正式批次原始 stats 显式核对，不能依赖跨 seed 分母。应分别命名 `pilot eligible-region flow fraction` 与 `formal relay-converted bytes / formal injected bytes`（后者仅在正式分母核对且无重复计数语义问题时给百分比），不能把 `24.9→38.2` 当作同定义命中率变化或据此确定 seed 的因果效应。
+4. **R2-F04 / P2 “128/56 变体更差”泛化超出数据。** 依据 `COMPARISON_10C_RESULTS.md`：backprop dual7 总时间 `1,607,098,500` ticks，**比 dual8 的 `1,607,134,500` 少 36,000 ticks**；dual7 服务时间 116.03 vs dual8 116.21 cycles，也略低。kmeans dual7 总时间略高。两应用的 **static7 均明显劣于 static8**，其额外 relay blocked cycles 与窄通道开销一致，但并非隔离因果实验证明。应将因果句限定为“static 128/56 在两个负载下更慢，伴随更多 flit/阻塞”；dual7 相对 dual8 基本持平、有混合符号差异。
+5. **R2-F05 / P2 离线 XY/Hilbert 几何距离不是实际路径测量。** `26.14/26.52` 和 `5.86/5.87` 是 pilot 流量的**潜在几何 hop 距离（按 origin/destination + Hilbert rank）**；dual 动态选择与 static bypass 均会改变实际采用路径，且应用正式 seed 不同。可称“距离分析解释性能趋势的有力机制假设”，但仅凭此项不能断定“主因已经被严格识别”。R2-4 只称一次性计算、不保留代码；论文级可复核的最小补充是写出 `Σ bytes(src,dst)·distance(src,dst)/Σ bytes(src,dst)`、输入 profile 路径、XY Manhattan 与 Hilbert rank 差的定义，不需新工具、实验或哈希系统。
+
+### R2 各阶段验收
+
+| 阶段 | 判定 | 判定依据与范围 |
+|---|---|---|
+| R2-0 冻结与命名 | PASS | v2 唯一正式批次、源码/子仓/配置分界、seed17 pilot/seed0 formal、128/64 与 128/56 分开 |
+| R2-1 机制—证据—主张 | PASS（限定） | 每项核心机制有既有源码与报告路径；平台适配及工艺/原文数据范围外披露 |
+| R2-2 负结果解释 | **NEED FIX / P1 文档** | link flits≠注入序列化、PG 能效不能由 sleep 单独确定、两种 shortcut 比例定义不一致、dual7 泛化和几何距离因果表述需收窄 |
+| R2-3 公平性与限制 | PASS，但相应 seed/指标“命中率”句需随 R2-2 修改 | 三仓非纯路由单变量、活动量非能量、应用退出未排空、内部链路而非总面积等预算披露正确 |
+| R2-4 证据打包 | PASS（既有证据）；几何派生值可复核公式待补 | 不引入大型工件、重复计算系统或新仿真 |
+| R2-5 审稿清单 | CONDITIONAL | 清单存在，但必须先去除 R2-2 的过度因果主张，才可将本文作为论文级 claim closure |
+
+### 最小闭环意见（**只修文档，不开新研究目标**）
+
+现有数据已足够支持**保守版本**的负结果解释：pilot 流量在 Hilbert 序上普遍非局部（≤2 hop 字节约 5.3–5.7%）；在同一 pilot 分布下 Hilbert 端点间的几何距离明显高于 XY；正式 dual 平台的物理链路活动和 service cycles 大幅上升，**与长路径导致传输开销增加一致**；M 使用很少，PG 状态机成本正确记账但无净能耗结论；static bypass 确有运行活动而不能完全消除目前的负收益；static7 随较窄通道和阻塞增加而更慢。现有事实可支持该**机制一致的解释**，但不支持对各原因分配独立因果贡献或宣称证实“主因”。
+
+**本终审不改变 N1 已批准的核心机制实现及固定平台比较资格，不请求重跑 16 应用或 22-case 套件，不请求修改 flexible-pipeline。** 请仅在 R2 文档与对应论文稿件中修正上述 P1 文本/分母定义；修正后无需另一次大规模 Code Review，完成一次文字一致性检查即可关闭 R2 claim 门。
+
+---
+
+
 ## 2026-10-16 全面 Code Review
 
 最新完整审查见 [HetSub 方法复现全面 Code Review 与下一阶段研究计划](../../docs/HETSUB_COMPREHENSIVE_CODE_REVIEW_AND_NEXT_PLAN_20261016.md)。本轮直接核对论文全文、冻结源码和已有原始产物，未修改核心代码、未重新运行仿真。结论：未发现新的 P0/P1；核心机制均进入真实数据路径；动态选择、local/global 定义及 composite shortcut 时序属于已披露的平台适配。裁决为方法完整性 `CONDITIONAL`、算法正确性 `PASS`、固定平台性能基准资格 `PASS（限定）`，综合 `CONDITIONAL APPROVE / FREEZE`。
