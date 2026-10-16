@@ -169,6 +169,7 @@
 ### N1-4 关闭状态
 
 - 证据（重分析 JSON、单元测试、定向用例运行输出与 validate 结果）已写入本节；本提交包含 `tools/hetsub` 改动与 fixtures。推送并核对远端后，最终 Code Review 由用户执行；`.ai/reviews/REVIEW.md` 未修改。
+- 终审结果：GOAL-HS-N1 APPROVE（`.ai/reviews/REVIEW.md`，提交 `2707194e`）；HetSub 方法复现正式冻结，除非发现具体机制反例不再重复验证。
 
 ---
 
