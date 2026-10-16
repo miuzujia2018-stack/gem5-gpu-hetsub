@@ -2,6 +2,8 @@
 
 日期：2026-10-16。本文件是 GOAL-HS-R3 交付物：只读审查，不修改任何源码，不运行新的 gem5 仿真，不重跑 22-case 网络套件或 16 个应用案例；仅对既有测试做只读复核（见第 7 节）。本审查不继承 `docs/HETSUB_DEEP_SOURCE_REVIEW_AND_CLAUDE_GOAL_20261016.md` 的 PASS 结论，全部主张从论文原文、源码实际数据路径与既有运行结果重新建立。
 
+修订记录：依据独立终审（父仓 `866c19c6`，R3-DOC-01/R3-DOC-02）修正第 2 节观察 1 的冲突粒度措辞与第 7 节示例命令路径；裁定结论（STOP/FREEZE、三问 P2）与全部证据不变。
+
 ## 1 冻结版本与证据来源
 
 - 审查起点：父仓 HEAD `2ee61cb6`，工作区干净。五个 gitlink：Graphite `e3ab0ecf`、benchmarks `35d75506`、gem5 `a90c04ca`、gem5-gpu `e53ac264`、gpgpu-sim `17f16f10`。
@@ -25,7 +27,7 @@
 
 本轮新增观察（均为 P2，非缺陷）：
 
-1. **每节点 long-link 端口上限比原文更严**。论文 p. 3138（Fig. 10 语境）允许每节点最多 2 输入与 2 输出 long-link；`HetSub.py:101-103` 的全局冲突集使每 tile 至多 1 入 + 1 出。更严格是保守化，不产生错误路径；冻结配置（4 条 level-1 shortcut）在两者下均合法。
+1. **long-link 冲突粒度与原文口径不同（不是每节点上限）**。论文 p. 3138（Fig. 10 语境）允许每节点最多 2 输入与 2 输出 long-link。实现按 (tile, 端口/方向) 与有向物理边建冲突集（`insert_shortcuts.py:76-82`、`HetSub.py:92-103`）：同一 tile 的本地接入位（-1/L）或同一方向端口不能承载两条同向 shortcut，物理中间段不可共享；同一 tile 可在不冲突的其他端口参与其他 shortcut——实现不限制每节点总数，故不能表述为"每节点上限 1"。冻结配置（4 条 level-1 shortcut）在两种口径下均合法。
 2. **拥塞信号范围与论文定义不同**（见 HS-CR-03）：论文为"全部端口总占用"，实现为"每 vnet 最忙 transit 端口"（`Router.cc:2377-2379` 注释已声明理由：输出缓冲 Garnet 中空闲本地端口不能稀释 transit 拥塞）。已披露。
 3. **PG 能量为周期记账代理**（`Router.cc:2392-2401`、`2451` `+= 10`），无工艺系数，不输出 J/W——与 R2 边界一致，论文 IV-A（p. 3139）的 6-cycle WU 与 10-cycle break-even 按参数记账。
 
@@ -41,10 +43,10 @@
 | 4 | 拥塞驱动动态选择：阈值置位/复位滞回、状态保持、双向比例（III-A-2, p. 3135） | `HetSubPolicy.hh:77-84`（75% 进入/50% 退出、带内保持）、`87-96`（双向 quarters）、`98-103`（preview）、`105-109`（commit 累加器）；`GarnetNetwork.cc:333-342`（128-cycle 门 + 源 tile 两 router 采样） | `test_policy.cc` 滞回与比例断言；p4/p6 实际分流与压力检查；policy case PASS | 已实现（范围近似：每 vnet 最忙 transit 端口；事件驱动采样） |
 | 5 | 有序 vnet 路径与顺序约束（论文未讨论跨子网顺序；Ruby 每 vnet 按序交付） | `HetSubPolicy.hh:100`、`GarnetNetwork.cc:331`（ordered→M）；`NetworkInterface.cc:316`（ordered 或 L 为单 VC） | `validate_network.py` 全 case 无 NI-WARN/回退；delivery 路径 `NetworkInterface.cc:423-464` | 已实现（平台必要；方向偏离原文优先级，P2） |
 | 6 | PG 三态、6-cycle WU、10-cycle 转换代价（IV-A, p. 3139） | `Router.cc:2424-2435`（50-cycle 空闲→SLEEP）、`2438-2464`（SLEEP→WAKING +6、`+=10`、WAKING→ACTIVE）、`2392-2401`（状态周期分解） | pg_mesh case：sleep 725,371、wakeups 212、waking 1,272（=212×6）；正式批次恒等式 waking=wakeups×6、WU=wakeups×10 精确成立 | 已实现（无工艺系数，不输出 J/W） |
-| 7 | 静态 long-link、crossbar bypass、物理段独占、时序（III-B, p. 3136-3137；p. 3143 静态演示） | `HetSub.py:86-113`（路径≤3、邻接、crossbar/本地端口/物理边冲突、每节点入/出集）；`NetworkLink.cc:176-188`（段独占、宽度一致）；`GarnetNetwork.cc:260-311`（构造期绑定、relay 连接、`shareWith`） | static8/static_level2 case：物理段 beats（372/1,176）、blocked/downstream_stall 非零、排空；`check_dependencies.py`：4096 路径、130 资源、129 依赖、acyclic | 已实现（保守近似；线长/pipeline 未工艺校准） |
+| 7 | 静态 long-link、crossbar bypass、物理段独占、时序（III-B, p. 3136-3137；p. 3143 静态演示） | `HetSub.py:86-113`（路径≤3、邻接、crossbar/本地端口/物理边冲突、按 (tile, 端口/方向) 的入/出冲突集）；`NetworkLink.cc:176-188`（段独占、宽度一致）；`GarnetNetwork.cc:260-311`（构造期绑定、relay 连接、`shareWith`） | static8/static_level2 case：物理段 beats（372/1,176）、blocked/downstream_stall 非零、排空；`check_dependencies.py`：4096 路径、130 资源、129 依赖、acyclic | 已实现（保守近似；线长/pipeline 未工艺校准） |
 | 8 | 有界 relay、request/grant/release、背压（III-B-2, p. 3136-3137） | `HetSubRelay.cc:33-74`（每 vnet 一帧、4 入槽、1 staging、单 VC/协议类守卫）、`70-74`（credit 界）、`56-67`（release 前帧守恒 fatal_if）、`139-141`（blocked/downstream_stall 记账） | 全 static case：completed_frames、fifo_highwater、排空；backprop static8 relay 输入 768,432 B（384,216/侧）、81,366 帧 | 已实现 |
 | 9 | Algorithm 1 单调 shortcut 限制（p. 3136-3137：仅当 shortcut 终点位于当前节点到最终目的地的路径上） | `HetSubPolicy.hh:48-52`（`shortcutAllowed`）；`Router.cc:1333-1335`（谓词门控出端口） | `test_policy.cc`：262,144 个 (current,end,dest) 三元组与"距离可加"等价断言 | 已实现 |
-| 10 | Algorithm 2 Hilbert 分层插入（p. 3138：分层、排除相邻子块、流量阈值、严格层级优先、无最低 2×2、物理长度≤2 hop、crossbar≤5 无冲突路径、每节点≤2 入/出） | `tools/hetsub/insert_shortcuts.py`（候选、阈值 128 B、limit 4、相邻排除、最小 2×2、flow_bytes 区域聚合）；`test_insertion.py` 5 项（含 level-2 唯一选中）；冻结配置：4 条 level-1（27→36、35→28、36→27、28→35），全部 level-2 below_threshold/limit | `test_insertion.py` 5 项通过（本轮只读复核）；定向 level-2 运行实际承载（relay frames>0、beats>0、排空） | 已实现（每节点≤1 入/出比原文更严，P2 观察 1） |
+| 10 | Algorithm 2 Hilbert 分层插入（p. 3138：分层、排除相邻子块、流量阈值、严格层级优先、无最低 2×2、物理长度≤2 hop、crossbar≤5 无冲突路径、每节点≤2 入/出） | `tools/hetsub/insert_shortcuts.py`（候选、阈值 128 B、limit 4、相邻排除、最小 2×2、flow_bytes 区域聚合）；`test_insertion.py` 5 项（含 level-2 唯一选中）；冻结配置：4 条 level-1（27→36、35→28、36→27、28→35），全部 level-2 below_threshold/limit | `test_insertion.py` 5 项通过（本轮只读复核）；定向 level-2 运行实际承载（relay frames>0、beats>0、排空） | 已实现（冲突按 (tile, 端口/方向) 与有向物理边去重，见第 2 节观察 1） |
 | 11 | 消息/字节/flit 守恒与端到端交付 | `validate_network.py`（injected==received==expected、bytes、flits、service+queue==completion）；`HetSubRelay.cc` 与 `NetworkLink.cc` 的 fatal_if 守卫 | 22-case 既有结果全 PASS（本轮抽读 independence/static_level2/policy/pg_mesh/static8/line/mesh8 复跑校验器，全部 PASS）；正式批次 audit `ok:true` | 已实现 |
 
 ## 4 完成度：已实现 / 部分 / 未实现 / 偏差
@@ -52,7 +54,7 @@
 - **已实现（实际数据路径生效）**：矩阵第 1–11 行全部机制，含守卫与守恒。
 - **部分（近似，已披露）**：拥塞信号范围（每 vnet 最忙 transit 端口 vs 论文全端口总量）；事件驱动采样 + 128-cycle 陈旧度门（论文无采样周期）；静态传播 segments-cycles 保守记账（未 RTL/布局校准）；PG 为周期记账代理（无工艺系数）。
 - **未实现（论文明确为 future work，不视为缺陷）**：运行时动态 long-link 插入（p. 3143）。本实现按论文演示范围冻结。
-- **偏差（方向性，P2）**：有序 vnet 固定 M（原文严格优先级会选 L）；每节点 long-link 入/出上限 1（原文 ≤2）；位宽 128/64（原文 64/32 的 2:1 比例在平台频率下等比缩放）。
+- **偏差（方向性，P2）**：有序 vnet 固定 M（原文严格优先级会选 L）；long-link 冲突按 (tile, 端口/方向) 与有向物理边去重（原文为每节点 ≤2 入/出；实现不限制每节点总数，见第 2 节观察 1）；位宽 128/64（原文 64/32 的 2:1 比例在平台频率下等比缩放）。
 
 ## 5 三个研究问题的最终裁定
 
@@ -80,10 +82,11 @@
 ```bash
 tools/reproduction/verify_gem5_build.sh verify "$PWD" X86_Network_test
 tools/reproduction/verify_gem5_build.sh verify "$PWD" X86_VI_hammer_GPU
-cd tools/hetsub && PYTHONDONTWRITEBYTECODE=1 python3 test_insertion.py
-PYTHONDONTWRITEBYTECODE=1 python3 check_dependencies.py \
+# 以下均在仓库根目录执行（R3-DOC-02：原示例混用 cd tools/hetsub 与仓库根相对路径）
+PYTHONDONTWRITEBYTECODE=1 python3 tools/hetsub/test_insertion.py
+PYTHONDONTWRITEBYTECODE=1 python3 tools/hetsub/check_dependencies.py \
   m5out/hetsub_network/20261015T152707Z/static_level2/config.ini
-PYTHONDONTWRITEBYTECODE=1 python3 validate_network.py \
+PYTHONDONTWRITEBYTECODE=1 python3 tools/hetsub/validate_network.py \
   m5out/hetsub_network/20261015T152707Z/<case> <case>   # independence, static_level2,
   # policy, pg_mesh, static8, line, mesh8 本轮抽读校验器复跑，全部 PASS
 ```
