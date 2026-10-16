@@ -294,3 +294,11 @@ R2 全部条目完成；方法保持冻结。最终 Code Review 由用户执行�
 - **R2-F05**：R2-2(1) 的 XY/Hilbert 距离改称"潜在几何 hop 距离、与趋势一致的机制假设"，删除"主因"表述；R2-4 补充可复核公式（加权均值 `Σ bytes·d / Σ bytes`、XY Manhattan、Hilbert rank 差、profile 路径、两个占比的分子/分母定义）。
 
 修正后 R2 claim 门按终审要求完成文字一致性检查；`.ai/reviews/REVIEW.md` 仍未修改。
+
+## GOAL-HS-R2 claim 门封口（2026-10-16）
+
+用户独立复核（父仓 `3e126518`，仅改 `.ai/reviews/REVIEW.md`，五个 gitlink 不变）确认五项发现全部落实、无新阻断问题：R2-2 由 `NEED FIX` 改判 `PASS`（限定于已冻结证据支持的科学主张），R2 claim 门正式关闭。最终裁决维持 `CONDITIONAL APPROVE / FREEZE`。
+
+- 五项发现复核结果：F01 PASS（链路累计活动与宽度转换明确区分）、F02 PASS（保留状态证据、不推断净节能）、F03 PASS（两指标独立命名、正式分母来自同一 static8 运行）、F04 PASS（仅 static7 更慢，dual7 差异小且方向不一致）、F05 PASS（机制假设 + 复核公式）。
+- 后续科研处置：维持核心源码与 `formal_10c_v2_20261015` 数据冻结；不增加实验、不修改算法、不因负收益调参、不重跑 22-case/16 应用。现有成果进入论文写作与方法比较阶段，须保留已确认的平台、时序、资源和因果解释边界；超出本闭环的更强因果/能耗/面积主张须另行评估证据。
+- 本记录为执行侧封口登记；`.ai/reviews/REVIEW.md` 未修改。
