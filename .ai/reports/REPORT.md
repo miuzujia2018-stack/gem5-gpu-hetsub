@@ -282,3 +282,15 @@ The sampled host `stats.txt` values and the corresponding CSV rows match exactly
 
 ### 状态
 R2 全部条目完成；方法保持冻结。最终 Code Review 由用户执行，`.ai/reviews/REVIEW.md` 未修改。
+
+## GOAL-HS-R2 终审后文档修正（2026-10-16）
+
+依据独立终审（父仓 `8cfa9e23`，R2-F01…R2-F05）仅修正 `docs/HETSUB_R2_CLAIM_EVIDENCE_AND_LIMITATIONS_20261016.md` 的因果措辞与统计分母；无源码修改、无仿真重跑、实际结果数值全部保留。
+
+- **R2-F01**：R2-2(2) 不再把 3.56× link flits 归因于窄通道序列化。核对 audit JSON：平均每个登记 link flit 的字节数 off 16.00 B vs dual8 15.95 B（backprop；kmeans 16.00/15.97），dual 常开 L 仍为 16 B flit，与 off/XY 同宽；活动量增长改述为跳数/长路径活动主导。窄通道转换成本仅以同模式窄变体自身计数举证（dual7> dual8、static7> static8 flits）。
+- **R2-F02**：R2-2(3) 由"PG 前提不成立"改为"M 使用稀少、对当前时延贡献有限；PG 净能量效应未知（无功耗模型及对照）"；高 sleep 比例同时意味着潜在漏电节省窗口。局部性假设不匹配单独归因于 pilot ≤2 字节比例。
+- **R2-F03**：两个占比分别命名并给出公式。`pilot eligible-region flow fraction` 24.86%/24.66%（249,744/1,004,752、264,608/1,072,856，象限区域对聚合字节，已从 profile.csv 复算一致）。`formal relay-converted bytes / formal injected bytes` 修正分母为**同一 static8 运行**的 `bytes_injected`：384,216/1,004,808=38.24%（backprop）、417,256/1,072,784=38.89%（kmeans）；此前误引其他运行/跨 seed 分母。分子含控制帧与允许的 transit 转换，注明为 bypass 份额上界代理。R2-3 seed 条目同步修订，不再作同定义命中率解读。
+- **R2-F04**：R2-2(5) 收窄为"128/56 仅在 static 模式更慢"；补充 dual7 vs dual8 基本持平且符号混合（backprop dual7 −36,000 ticks、服务 116.03 vs 116.21 cycles；kmeans dual7 +196,000 ticks）。
+- **R2-F05**：R2-2(1) 的 XY/Hilbert 距离改称"潜在几何 hop 距离、与趋势一致的机制假设"，删除"主因"表述；R2-4 补充可复核公式（加权均值 `Σ bytes·d / Σ bytes`、XY Manhattan、Hilbert rank 差、profile 路径、两个占比的分子/分母定义）。
+
+修正后 R2 claim 门按终审要求完成文字一致性检查；`.ai/reviews/REVIEW.md` 仍未修改。
