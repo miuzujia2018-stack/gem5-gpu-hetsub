@@ -56,4 +56,4 @@ cd tools/hetsub && PYTHONDONTWRITEBYTECODE=1 python3 test_insertion.py
 
 ## 4. 状态
 
-无新增已确认关键缺陷；F-R4-01/F-R4-02 为文档精度 P2，不改变任何定性结论；GPU 16/10 口径仍待用户确认。裁定：**R4-DOC CLOSED / CORE FREEZE RETAINED**。
+无新增已确认关键缺陷；F-R4-01/F-R4-02/F-R4-03 为文档精度 P2，不改变任何定性结论；GPU 16/10 口径仍待用户确认。本轮为文档一致性复核 + 既有源码锚点引用 + 离线脚本复跑，非新一轮完整独立 Code Review（见公平性文档第 1 节证据基础）。裁定：**R4-DOC CLOSED / CORE FREEZE RETAINED**。

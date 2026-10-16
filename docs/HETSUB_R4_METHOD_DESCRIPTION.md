@@ -16,7 +16,7 @@ R4-0 基线门禁（本次核对）：五个 gitlink 与目标文件所列冻结
 
 | 节 | 已核实内容 | 关键引文/要点 |
 |---|---|---|
-| III-A | 异构双子网：常开宽 Line 子网（16-bit flit）与可休眠窄 Mesh 子网；Line 走 Hilbert 序路由，Mesh 走 XY | 拥塞定义为**所有端口 buffer 总占用**；置位/复位阈值；状态保持一段时间；双向分流比例；**原文未定义采样周期** |
+| III-A | 异构双子网：常开宽 Line 子网（16-byte flit）与可休眠窄 Mesh 子网（8 或 7 bytes，`options.hetsub_mesh_bytes`）；Line 走 Hilbert 序路由，Mesh 走 XY | 拥塞定义为**所有端口 buffer 总占用**；置位/复位阈值；状态保持一段时间；双向分流比例；**原文未定义采样周期** |
 | III-B | 真实宽窄 flit 与序列化/反序列化；低流量时选择策略被屏蔽，全部消息进入常开 dual-line | 长程链路以"special packets"形式预加载到路由器（p. 3136） |
 | Algorithm 1 | 单调 shortcut 限制：仅当目的地位于当前→shortcut 端点→目的地的路径上才允许使用（p. 3136–3137） | — |
 | Algorithm 2 | Hilbert 分层插入：排除相邻子块、流量阈值、严格层级优先、无 2×2 层、≤2 hop、crossbar ≤5、每节点 ≤2 入向与 ≤2 出向长程链路（p. 3138） | — |

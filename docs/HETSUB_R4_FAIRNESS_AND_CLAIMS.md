@@ -5,7 +5,8 @@
 ## 1. Findings-first 结论
 
 - **无新增已确认 P0/P1 关键缺陷。** R3 已裁定的 P2 观察（冲突粒度、拥塞反馈范围、PG 周期记账代理、采样周期为实现选择、静态传播保守记账、ordered vnet 钉 M 的方向差异）全部维持，且均为已披露适配差异，无具体可达反例，不升级为阻塞缺陷。
-- 本次新增两项**文档精度 P2**（见第 3 节 F-R4-01/F-R4-02），均不改变任何定性结论。
+- 本次新增三项**文档精度 P2**（见第 3 节 F-R4-01/F-R4-02/F-R4-03），均不改变任何定性结论。
+- **证据基础（措辞澄清）**：本轮为文档一致性复核——核对 GitHub 提交、R4 三份报告与历史审查记录，并复跑既有离线脚本（verify 门禁、`test_insertion.py`、`check_dependencies.py`、`validate_network.py`）；源码 `file:line` 锚点沿用更早审查的直接读取结果，本轮未重读全部源码、未运行仿真。因此本轮结论不能表述为新一轮完整独立 Code Review。用户随后从 GitHub 独立读取冻结提交 `a90c04ca` 的实际源码（`HetSub.py`、`HetSubPolicy.hh`、`Router.cc`、`HetSubRelay.cc`、`insert_shortcuts.py`），确认既有锚点，并触发 F-R4-03 修正。
 - 程序性上报：R4 目标文件缺失（见方法描述文档第 0 节）。
 - 裁定：**PASS（含 P2 精度注记）→ R4-DOC CLOSED / CORE FREEZE RETAINED**。
 
@@ -30,6 +31,7 @@
 
 - **F-R4-01（pilot 快照混用）**：R2-2(1) 的 ≤2 字节占比（5.68%/5.27%）来自 p6 pilot profile（307/323 流），而 R2-4 声明的输入是正式批次 pilot profile（299/355 流，1,004,752/1,072,856）。按 R2-4 定义在正式批次 profile 上复算为 5.5082%/5.4196%。定性结论（局部性前提不满足、≤2 约 5%）不变；引用时应注明快照来源。
 - **F-R4-02（未加权分母不一致）**：R2-4 声明未加权值按"全部 64×63 有序对"计算，但 R2 记录的 5.25/21.33 对应含同 tile 自对的 64×64 分母（4096）。按声明的 64×63 分母，可复现值为 XY 5.3333、Hilbert 21.6667。两者均为潜在几何 hop 距离（非实测路径），结论不变。
+- **F-R4-03（flit 宽度单位，用户独立源码核对触发）**：方法描述 §1 III-A 行原写"16-bit flit"，不准确。冻结提交 `a90c04ca` 实际源码为 **bytes**：`HetSub.py` Line `channel_width=16`、Mesh `options.hetsub_mesh_bytes`（8 或 7）、relay `input_bytes=16`/`output_bytes=width`；`HetSubPolicy.hh` 的 `flitCount(message_bytes, width_bytes)` 亦按字节。已修正为"16-byte flit（Line）/ Mesh 8 或 7 bytes"。A-2 的 16↔8/16↔7 字节转换表述本就正确，无其他受影响的断言，结论不变。
 
 ## 4. 负结果保留（逐字，来自 `docs/COMPARISON_10C_RESULTS.md`）
 
