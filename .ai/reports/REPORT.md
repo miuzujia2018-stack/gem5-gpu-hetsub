@@ -266,3 +266,19 @@ The sampled host `stats.txt` values and the corresponding CSV rows match exactly
 2. `run_synth_sweep.sh` requires a running `gem5gpu-dev` container and `sudo docker` access.
 
 3. `scripts/run_synth_sweep.sh` currently hardcodes `--sim-cycles 100000 --random_seed 42`. That is fine for the current baseline workflow, but a future convenience improvement would be to accept pass-through CLI arguments for cheaper smoke runs.
+
+## GOAL-HS-R2 执行记录（2026-10-16）
+
+范围：仅文档与证据闭环，无源码修改、无仿真重跑。交付物为 `docs/HETSUB_R2_CLAIM_EVIDENCE_AND_LIMITATIONS_20261016.md`（R2-0…R2-5）。
+
+### 执行前门禁（审查第 8.1 节，只读）
+- `verify_gem5_build.sh verify`：`X86_Network_test`（binary `1bef3876…`）与 `X86_VI_hammer_GPU`（binary `9f5ed9cb…`）均 VERIFIED，source `a5470ae3…`。
+- `test_insertion.py`：5 项测试全部通过。
+
+### R2-2 新增离线计算（基于已有数据，未重跑）
+- 工具 `hilbert_order()` 与 simulator `HetSubPolicy.hh::Geometry` 经测试确认一致后，对 pilot profile 计算流量加权路径长度：backprop XY 5.86 vs Hilbert 26.14 hop；kmeans XY 5.87 vs Hilbert 26.52 hop；未加权全对 5.25 vs 21.33。
+- M 路由器 PG 分解（dual 模式）：backprop dual8 sleep 205,578,119（99.93%）、M active 126,679、waking 8,418=1403×6、WU 14,030；kmeans dual8 sleep 93,993,650（99.89%）、M active 99,654、waking 7,560=1260×6、WU 12,600。恒等式（每 M router 状态周期=窗口）成立。
+- 静态模式实际承载：8 个 relay 接入侧，backprop static8 每侧 384,216 bytes（81,366 帧，含控制帧）、segment beats 192,108、blocked 14,232、downstream_stall 2,594；kmeans static8 每侧 417,256 bytes（88,378 帧）、beats 208,628、blocked 16,554、stall 3,838。pilot 选中字节占比 24.86%/24.66%，正式运行每侧实际转换占比 38.2%/38.9%（seed 17 vs 0 差异已披露）。
+
+### 状态
+R2 全部条目完成；方法保持冻结。最终 Code Review 由用户执行，`.ai/reviews/REVIEW.md` 未修改。
