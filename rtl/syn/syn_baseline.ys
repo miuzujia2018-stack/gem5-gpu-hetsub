@@ -1,7 +1,7 @@
 // E1.2 Baseline synthesis — Nangate45 typ, 1 GHz, flops buffers.
 // Same flow as HetSub (E3.1): liberty + dfflibmap + abc, hierarchical top.
 read_liberty pdk/Nangate45_typ.lib
-read_verilog src/rr_arb.v src/baseline_router.v
+read_verilog src/rr_arb.v src/vc_buffer.v src/rc_xy.v src/vc_table.v src/vc_alloc.v src/sw_alloc.v src/crossbar.v src/baseline_router.v
 hierarchy -check -top baseline_router
 proc; opt; dfflibmap -liberty pdk/Nangate45_typ.lib
 abc -liberty pdk/Nangate45_typ.lib

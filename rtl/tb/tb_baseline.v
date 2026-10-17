@@ -47,7 +47,7 @@ module tb_baseline;
     // Acceptance as settled by the DUT at the posedge following presentation.
     // Sampled on posedge so the negedge injection block sees a stable value.
     reg [NPORTS*NVC-1:0] acc_q;
-    always @(posedge clk) if (!rst) acc_q <= dut.accept;
+    always @(posedge clk) if (!rst) acc_q <= dut.u_buf.accept;
 
     // Downstream model: return credit one cycle after each delivered flit
     reg [NPORTS*NVC-1:0] ret_d;
@@ -145,15 +145,15 @@ module tb_baseline;
             $finish;
         end
         for (g = 0; g < NPORTS; g = g + 1) begin
-            if (dut.occ[(g*NVC + 0)*3 +: 3] != 0 || dut.occ[(g*NVC + 1)*3 +: 3] != 0) begin
+            if (dut.u_buf.occ[(g*NVC + 0)*3 +: 3] != 0 || dut.u_buf.occ[(g*NVC + 1)*3 +: 3] != 0) begin
                 $display("FAIL: port %0d not drained", g); $finish;
             end
-            if (dut.vc_busy[g*NVC + 0] || dut.vc_busy[g*NVC + 1]) begin
+            if (dut.u_table.vc_busy[g*NVC + 0] || dut.u_table.vc_busy[g*NVC + 1]) begin
                 $display("FAIL: port %0d VC still busy", g); $finish;
             end
-            if (dut.credit[(g*NVC + 0)*3 +: 3] != 4 || dut.credit[(g*NVC + 1)*3 +: 3] != 1) begin
+            if (dut.u_buf.credit[(g*NVC + 0)*3 +: 3] != 4 || dut.u_buf.credit[(g*NVC + 1)*3 +: 3] != 1) begin
                 $display("FAIL: port %0d credits not restored: %0d/%0d",
-                         g, dut.credit[(g*NVC + 0)*3 +: 3], dut.credit[(g*NVC + 1)*3 +: 3]); $finish;
+                         g, dut.u_buf.credit[(g*NVC + 0)*3 +: 3], dut.u_buf.credit[(g*NVC + 1)*3 +: 3]); $finish;
             end
         end
         $display("PASS tb_baseline: injected=%0d delivered=%0d drained, credits restored",

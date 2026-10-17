@@ -38,7 +38,7 @@ module tb_l_router;
     integer injected_total = 0, delivered_total = 0;
 
     reg [NPORTS-1:0] acc_q;
-    always @(posedge clk) if (!rst) acc_q <= dut.accept;
+    always @(posedge clk) if (!rst) acc_q <= dut.u_buf.accept;
 
     reg [NPORTS-1:0] ret_d;
 
@@ -121,14 +121,14 @@ module tb_l_router;
             $display("FAIL: conservation injected=%0d delivered=%0d", injected_total, delivered_total); $finish;
         end
         for (g = 0; g < NPORTS; g = g + 1) begin
-            if (dut.occ[g*3 +: 3] != 0) begin
+            if (dut.u_buf.occ[g*3 +: 3] != 0) begin
                 $display("FAIL: port %0d not drained", g); $finish;
             end
-            if (dut.vc_busy[g]) begin
+            if (dut.u_table.vc_busy[g]) begin
                 $display("FAIL: port %0d VC still busy", g); $finish;
             end
-            if (dut.credit[g*3 +: 3] != 4) begin
-                $display("FAIL: port %0d credits not restored: %0d", g, dut.credit[g*3 +: 3]); $finish;
+            if (dut.u_buf.credit[g*3 +: 3] != 4) begin
+                $display("FAIL: port %0d credits not restored: %0d", g, dut.u_buf.credit[g*3 +: 3]); $finish;
             end
         end
         $display("PASS tb_l_router: injected=%0d delivered=%0d drained, credits restored",

@@ -1,7 +1,7 @@
 // E3.1 HetSub tile top synthesis — Nangate45 typ, 1 GHz, flops buffers.
 // Same flow as Baseline (E1.2): liberty + dfflibmap + abc, hierarchical top.
 read_liberty pdk/Nangate45_typ.lib
-read_verilog src/rr_arb.v src/hetsub_l_router.v src/hetsub_m_router.v src/hetsub_relay_tx.v src/hetsub_relay_rx.v src/hetsub_bypass.v src/hetsub_select_pg.v src/hetsub_tile_top.v
+read_verilog src/rr_arb.v src/vc_buffer.v src/rc_xy.v src/rc_mono.v src/vc_table.v src/vc_alloc.v src/sw_alloc.v src/crossbar.v src/hetsub_l_router.v src/hetsub_m_router.v src/hetsub_relay_tx.v src/hetsub_relay_rx.v src/hetsub_bypass.v src/hetsub_select_pg.v src/hetsub_tile_top.v
 hierarchy -check -top hetsub_tile_top
 proc; opt; dfflibmap -liberty pdk/Nangate45_typ.lib
 abc -liberty pdk/Nangate45_typ.lib

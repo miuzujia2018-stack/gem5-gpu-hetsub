@@ -362,6 +362,11 @@ R2 全部条目完成；方法保持冻结。最终 Code Review 由用户执行�
 - `hetsub_relay_rx`：`ready_out` 由 `!acc_valid` 改为透传 `ready_in`（完成字的 beat 仍被接受），使 tx/rx 握手一致。
 - `tb_relay`：事件在 posedge 按 DUT 实际使用的值采样，negedge 记分；此前 negedge 相位错开导致误判。
 - `tb_bypass`/`tb_select_pg` 期望值按 NBA 语义与输出端口索引（`byp_valid`/`exclusive` 按输出索引，`block` 按输入索引）修正；DUT 行为本身未改。
+- `vc_table`：释放回路原用打包向量的标量位 `vc_port[i]` 而非 3-bit 字段 `vc_port[i*3 +: 3]`，清错 `vc_busy` 位；已改为字段索引。
+- `vc_buffer`：新增由 pre-edge 值计算的注册 `drained` 标志（消除与 vc_table 同沿读取 `single/accept` 的竞争），vc_table 改收 `clear_en=drained`。
+- `sw_alloc`：sa_req 硬编码两个 VC 项，NVC=1 时 `p*NVC+1` 别名到下一端口条目（L router 输出 1 误请求 entry 0）；改为 `if (NVC == 1)` generate 分支。
+- `tb_m_router`：block 阶段 flit 单次接受后清除 `valid_in[2]`（此前 accept 每周期重触发导致重复交付）；block 阶段计入守恒（injected=16）。
+- 2026-10-17 重跑：六项功能门全部 PASS（`iverilog -o sim_<t> tb/tb_<t>.v src/*.v && vvp sim_<t>`）。调试用 `tb_dbg.v` 已删除。
 
 ### 未完成项
 

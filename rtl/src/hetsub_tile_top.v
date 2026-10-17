@@ -91,7 +91,7 @@ module hetsub_tile_top (
     hetsub_m_router u_m (
         .clk(clk), .rst(rst),
         .flit_in(m_flit_in), .valid_in(m_valid_in), .vc_in(m_vc_in), .type_in(m_type_in),
-        .credit_ret(m_credit_ret),
+        .credit_ret(m_credit_ret), .block(block), .exclusive(exclusive),
         .flit_out(m_flit_out), .valid_out(m_valid_out), .vc_out(m_vc_out), .type_out(m_type_out)
     );
 

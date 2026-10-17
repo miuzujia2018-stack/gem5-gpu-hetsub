@@ -18,6 +18,7 @@ module tb_m_router;
     reg [NPORTS*2-1:0]      vc_in;
     reg [NPORTS*2-1:0]      type_in;
     reg [NPORTS*2-1:0]      credit_ret;
+    reg [NPORTS-1:0]        block, exclusive;
 
     wire [NPORTS*FLIT_W-1:0] flit_out;
     wire [NPORTS-1:0]        valid_out;
@@ -27,7 +28,7 @@ module tb_m_router;
     hetsub_m_router #(.MY_X(2), .MY_Y(2)) dut (
         .clk(clk), .rst(rst),
         .flit_in(flit_in), .valid_in(valid_in), .vc_in(vc_in), .type_in(type_in),
-        .credit_ret(credit_ret),
+        .credit_ret(credit_ret), .block(block), .exclusive(exclusive),
         .flit_out(flit_out), .valid_out(valid_out), .vc_out(vc_out), .type_out(type_out)
     );
 
@@ -41,7 +42,7 @@ module tb_m_router;
     integer injected_total = 0, delivered_total = 0;
 
     reg [NPORTS*NVC-1:0] acc_q;
-    always @(posedge clk) if (!rst) acc_q <= dut.accept;
+    always @(posedge clk) if (!rst) acc_q <= dut.u_buf.accept;
 
     reg [NPORTS*NVC-1:0] ret_d;
 
@@ -64,17 +65,26 @@ module tb_m_router;
         end
         flit_in = 0; valid_in = 0; vc_in = 0; type_in = 0;
         credit_ret = 0; ret_d = 0; acc_q = 0;
+        block = 0; exclusive = 0;
     end
 
     integer inject_start = 10;
     integer cyc = 0;
+    integer stop_inject = 0;
     integer next_i [0:NPORTS-1];
     integer presented [0:NPORTS-1];
+
+    reg blk_accepted = 0;
 
     always @(negedge clk) begin
         if (!rst) begin
             cyc = cyc + 1;
-            if (cyc >= inject_start) begin
+            // Single-shot the block-phase flit: clear valid_in after its first accept.
+            if (stop_inject && blk_accepted == 0 && acc_q[2*NVC + 0]) begin
+                blk_accepted = 1;
+                valid_in[2] = 0;
+            end
+            if (cyc >= inject_start && !stop_inject) begin
                 for (g = 0; g < NPORTS; g = g + 1) begin
                     if (presented[g] && acc_q[g*NVC + gvc[g]]) begin
                         next_i[g] = next_i[g] + 1;
@@ -126,18 +136,56 @@ module tb_m_router;
             $display("FAIL: conservation injected=%0d delivered=%0d", injected_total, delivered_total); $finish;
         end
         for (g = 0; g < NPORTS; g = g + 1) begin
-            if (dut.occ[(g*NVC + 0)*3 +: 3] != 0 || dut.occ[(g*NVC + 1)*3 +: 3] != 0) begin
+            if (dut.u_buf.occ[(g*NVC + 0)*3 +: 3] != 0 || dut.u_buf.occ[(g*NVC + 1)*3 +: 3] != 0) begin
                 $display("FAIL: port %0d not drained", g); $finish;
             end
-            if (dut.vc_busy[g*NVC + 0] || dut.vc_busy[g*NVC + 1]) begin
+            if (dut.u_table.vc_busy[g*NVC + 0] || dut.u_table.vc_busy[g*NVC + 1]) begin
                 $display("FAIL: port %0d VC still busy", g); $finish;
             end
-            if (dut.credit[(g*NVC + 0)*3 +: 3] != 4 || dut.credit[(g*NVC + 1)*3 +: 3] != 1) begin
+            if (dut.u_buf.credit[(g*NVC + 0)*3 +: 3] != 4 || dut.u_buf.credit[(g*NVC + 1)*3 +: 3] != 1) begin
                 $display("FAIL: port %0d credits not restored: %0d/%0d",
-                         g, dut.credit[(g*NVC + 0)*3 +: 3], dut.credit[(g*NVC + 1)*3 +: 3]); $finish;
+                         g, dut.u_buf.credit[(g*NVC + 0)*3 +: 3], dut.u_buf.credit[(g*NVC + 1)*3 +: 3]); $finish;
             end
         end
-        $display("PASS tb_m_router: injected=%0d delivered=%0d drained, credits restored",
+
+        // Gate 4 data path: a bypass-granted input (block=1) must not enter the
+        // normal buffer/RC/VA and must not be delivered through the crossbar.
+        stop_inject = 1;
+        block[2] = 1;
+        flit_in[2*FLIT_W +: FLIT_W] = mkflit(2, 1, 0, 0, 16'h5A5 << 32);
+        valid_in[2] = 1;
+        vc_in[2*2 +: 2] = 0;
+        type_in[2*2 +: 2] = 0;
+        #1;
+        if (dut.u_buf.accept[2*NVC + 0] !== 1'b0) begin
+            $display("FAIL: blocked input accepted"); $finish;
+        end
+        @(posedge clk); #1;
+        if (dut.u_buf.occ[(2*NVC + 0)*3 +: 3] != 0 || dut.u_table.vc_busy[2*NVC + 0]) begin
+            $display("FAIL: blocked flit entered buffer/VC table"); $finish;
+        end
+        if (delivered[2] != 3) begin
+            $display("FAIL: blocked flit delivered through normal path"); $finish;
+        end
+        // Release block: the held flit is then accepted and delivered normally.
+        exp_q[2][exp_n[2]] = mkflit(2, 1, 0, 0, 16'h5A5 << 32);
+        exp_n[2] = exp_n[2] + 1;
+        injected_total = injected_total + 1;
+        block[2] = 0;
+        #100;
+        if (injected_total != 16 || delivered_total != 16 || delivered[2] != 4) begin
+            $display("FAIL: post-block conservation injected=%0d delivered=%0d port2=%0d",
+                     injected_total, delivered_total, delivered[2]); $finish;
+        end
+        for (g = 0; g < NPORTS; g = g + 1) begin
+            if (dut.u_buf.occ[(g*NVC + 0)*3 +: 3] != 0 || dut.u_buf.occ[(g*NVC + 1)*3 +: 3] != 0) begin
+                $display("FAIL: port %0d not drained after block release", g); $finish;
+            end
+            if (dut.u_table.vc_busy[g*NVC + 0] || dut.u_table.vc_busy[g*NVC + 1]) begin
+                $display("FAIL: port %0d VC still busy after block release", g); $finish;
+            end
+        end
+        $display("PASS tb_m_router: injected=%0d delivered=%0d drained, credits restored, blocked input excluded",
                  injected_total, delivered_total);
         $finish;
     end

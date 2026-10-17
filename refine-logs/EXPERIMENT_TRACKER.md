@@ -52,17 +52,19 @@
 
 ### E1.1 — Baseline 定向仿真（PASS）
 
-- 2026-10-17：`iverilog -o sim_baseline tb/tb_baseline.v src/rr_arb.v src/baseline_router.v && vvp sim_baseline`
+- 2026-10-17：`iverilog -o sim_baseline tb/tb_baseline.v src/*.v && vvp sim_baseline`
 - 结果：`PASS tb_baseline: injected=15 delivered=15 drained, credits restored`
+- 修正记录（本日重跑确认）：vc_table 释放回路原用 `vc_port[i]`（打包向量的标量位）而非 3-bit 字段 `vc_port[i*3 +: 3]`，清错 vc_busy 位；vc_buffer 新增由 pre-edge 值计算的注册 `drained` 标志（消除与 vc_table 同沿竞争），vc_table 改收 `clear_en=drained`。
 - 覆盖：5 端口各一组 head/body/tail（含 local 与 control VC）、VC 分配、credit 计数、crossbar 交付顺序与内容、守恒与排空、credit 恢复（4/1）。
 - 结论：Baseline 数据路径（accept → VA → VC 表 → SA → crossbar）功能正确。
 
 ### E2.1 — L/M router 定向仿真（PASS）
 
-- 2026-10-17：`iverilog -o sim_l tb/tb_l_router.v src/rr_arb.v src/hetsub_l_router.v && vvp sim_l`
+- 2026-10-17（重跑，含本日修正）：`iverilog -o sim_l_router tb/tb_l_router.v src/*.v && vvp sim_l_router`
   → `PASS tb_l_router: injected=9 delivered=9 drained, credits restored`
-- 2026-10-17：`iverilog -o sim_m tb/tb_m_router.v src/rr_arb.v src/hetsub_m_router.v && vvp sim_m`
-  → `PASS tb_m_router: injected=15 delivered=15 drained, credits restored`
+- 2026-10-17（重跑，含本日修正）：`iverilog -o sim_m_router tb/tb_m_router.v src/*.v && vvp sim_m_router`
+  → `PASS tb_m_router: injected=16 delivered=16 drained, credits restored, blocked input excluded`
+- 修正记录：sw_alloc 的 sa_req 硬编码两个 VC 项（`p*NVC+0`/`p*NVC+1`），NVC=1 时第二项别名到下一端口条目（L router 输出 1 误请求 entry 0）；改为 `if (NVC == 1)` generate 分支。tb_m_router 的 block 阶段 flit 被接受后 `valid_in[2]` 未清除，accept 每周期重触发导致同一 flit 重复交付；TB 改为单次接受后清除 valid_in。
 - 覆盖：L（3-port、128-bit、1 VC）与 M（5-port、64-bit、2 VC，含 depth-1 control VC）的 VC 分配、credit、crossbar 交付内容/顺序、守恒与排空。
 - 结论：双子网 router 数据路径功能正确。
 
