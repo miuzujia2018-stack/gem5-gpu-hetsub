@@ -1,5 +1,18 @@
 # Active Task — HetSub 核心机制实施（2026-10-15）
 
+## 2026-10-17 新阶段：HetSub RTL 面积估算（规划完成，尚未实施）
+
+用户已将后续范围扩展到 RTL 仿真与逻辑综合，目标是生成 ALPHA 论文 Table 3 风格的 HetSub 面积行。本阶段不写论文、不追求论文性能收益，也不修改已经冻结的 gem5 flexible-pipeline。
+
+执行规格与跟踪表：
+
+- [`refine-logs/EXPERIMENT_PLAN.md`](../../refine-logs/EXPERIMENT_PLAN.md)
+- [`refine-logs/EXPERIMENT_TRACKER.md`](../../refine-logs/EXPERIMENT_TRACKER.md)
+
+当前关键结论：现仓库没有可综合 RTL、45 nm library 或综合 Tcl；ALPHA 表为 45 nm，而 HetSub 原文为 SMIC 55 nm/200 MHz，不能直接拼表。正式执行必须先固定同一工艺、PVT、时钟、存储建模和面积边界，重新综合 Baseline 与 HetSub；若取得 ALPHA 原环境并成功校准到 0.2303 mm²，才允许直接向原 Table 3 追加 HetSub。主 HetSub 配置为 L=128 bit、M=64 bit，核心 relay/bypass/select/PG/config 必须进入综合 top。
+
+本次仅新增规划文档，无 simulator/runtime 配置变化，不触发 gem5 clean-build provenance gate。
+
 ## 2026-10-17 用户要求的只读审查（已完成）
 
 范围：直接对照本地论文 Algorithm 1/2 与 flexible 实际数据路径，复用历史实验；不修改源代码/配置、不创建新开发任务、不重跑仿真。交付为 `docs/HETSUB_READONLY_REVIEW_20261017.md` 和 REVIEW 最新节。
