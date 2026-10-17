@@ -1,13 +1,13 @@
 # HetSub RTL 面积实验跟踪表
 
 生成时间：2026-10-17 13:06:31 CST  
-当前状态：`PLAN READY / RTL NOT STARTED`
+当前状态：`E0 DONE / E1.1 PASS / E1.2 PENDING (yosys install)`
 
 | ID | 实验/检查 | 关键变量 | 主要指标 | 通过条件 | 状态 |
 |---|---|---|---|---|---|
-| E0.1 | 恢复 ALPHA 综合口径 | library/version、PVT、clock、memory model | 来源完备性 | 足以唯一执行；否则正式转为 re-estimated | 待办 |
-| E0.2 | 固定面积边界 | router/tile scope、PG cells、wire exclusion | 纳入/排除清单 | Baseline 与 HetSub 定义一致 | 待办 |
-| E1.1 | Baseline RTL 定向仿真 | 5-port、128-bit、2 VC、depth 4/1 | 守恒、credit、路由 | 全部断言通过并排空 | 待办 |
+| E0.1 | 恢复 ALPHA 综合口径 | library/version、PVT、clock、buffer 实现 | 来源完备性 | 足以唯一执行；否则正式转为 re-estimated | 完成（转 re-estimated） |
+| E0.2 | 固定面积边界 | router/tile scope、PG cells、wire exclusion | 纳入/排除清单 | Baseline 与 HetSub 定义一致 | 完成 |
+| E1.1 | Baseline RTL 定向仿真 | 5-port、128-bit、2 VC、depth 4/1 | 守恒、credit、路由 | 全部断言通过并排空 | PASS |
 | E1.2 | Baseline 正式综合 | 固定 45 nm flow | total、hier area、WNS | 已解析/已约束/WNS≥0；memory 非零 | 待办 |
 | E1.3 | 原表校准判定 | 同原环境时才适用 | 与 0.2303 mm² 差异 | ≤5% 才允许直接追加原表 | 待办 |
 | E2.1 | L/M router 仿真 | L 128/1VC；M 64/2VC | 路由、VA/SA、反压 | 定向流量守恒并排空 | 待办 |
@@ -29,3 +29,30 @@
 - 2026-10-17：最终增幅以同批次、同 flow 的 Baseline 为分母；取得原作者环境并通过校准前，不使用 0.2303 作为分母。
 - 2026-10-17：Method-specific 增加 HetSub 专属子列，避免将核心机制隐藏在 Other。
 
+## 执行记录
+
+### E0.1 — 口径恢复（完成，转 re-estimated）
+
+- 2026-10-17：ALPHA 原环境（Synopsys DC 版本、PVT corner）不可恢复，正式转为"同口径 re-estimated"。
+- 锁定公开库：Nangate45 Open Cell Library，typ corner，134 cells。
+  - 文件：`rtl/pdk/Nangate45_typ.lib`
+  - SHA-256：`2efd0b32eb580e4e60e72fc0575bb3bc69aac907c91d908442e4ae6d7fe55895`（与上游 OpenSTA test 文件一致）
+  - 来源：https://raw.githubusercontent.com/The-OpenROAD-Project/OpenSTA/master/test/nangate45/Nangate45_typ.lib
+- 单一时钟约束点：1.0 ns（1 GHz），Baseline 与 HetSub 共用。
+- Buffer 建模：寄存器阵列（flops），无 memory blackbox；Baseline 与 HetSub 同一建模方式。
+- 工具：Yosys + `read_liberty`/`dfflibmap`/`abc -liberty`；OpenSTA 不可用，面积取 `stat -liberty` 单元面积和。
+
+### E0.2 — 面积边界（完成）
+
+- 面积单位 = 一个 HetSub tile：L router（3-port、128-bit、1 VC/vnet）+ M router（5-port、64-bit、2 VC/vnet）+ NI select/backpressure + 128↔64 relay（有界缓存）+ 静态 long-link crossbar bypass + 拥塞采样 + 滞回 + PG 状态机/wake/isolation + 静态配置寄存器。
+- Algorithm 2 为离线计算（无面积），但其配置存储/bypass 控制计入。
+- 排除：连线与 P&R 面积；若库无 PG header/isolation cell，对应项记 N/A。
+- `Other = Total − attributed`；Table 3 增加 `HetSub modules` 子列。
+- Baseline 与 HetSub 使用同一 flow、同一库、同一约束、同一 buffer 建模；增幅分母为同 flow 重新综合的 Baseline。
+
+### E1.1 — Baseline 定向仿真（PASS）
+
+- 2026-10-17：`iverilog -o sim_baseline tb/tb_baseline.v src/rr_arb.v src/baseline_router.v && vvp sim_baseline`
+- 结果：`PASS tb_baseline: injected=15 delivered=15 drained, credits restored`
+- 覆盖：5 端口各一组 head/body/tail（含 local 与 control VC）、VC 分配、credit 计数、crossbar 交付顺序与内容、守恒与排空、credit 恢复（4/1）。
+- 结论：Baseline 数据路径（accept → VA → VC 表 → SA → crossbar）功能正确。
