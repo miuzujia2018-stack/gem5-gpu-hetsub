@@ -370,6 +370,32 @@ R2 全部条目完成；方法保持冻结。最终 Code Review 由用户执行�
 
 ### 未完成项
 
-- E1.2/E3.1 正式综合与 WNS：等待 oss-cad-suite（Yosys+OpenSTA）下载解压（当前 407 MB 不完整，后台续传中）。此前"OpenSTA 不可用"记录作废。
-- E3.2 面积归属审计、E4.1 Table 3（含 `HetSub modules` 子列）尚未产生数值。
-- `hetsub_tile_top` 已建立（L+M+relay+bypass+select_pg 单 top），尚未综合。
+- ~~E1.2/E3.1 正式综合与 WNS~~：已完成（2026-10-18，见下节 Table 3）；WNS 两设计均 FAIL（-6.2300 / -3.1200），如实保留。
+- ~~E3.2 面积归属审计、E4.1 Table 3~~：已完成（Other = 0.0000 两设计；Table 3 见下节）。
+- 128/56 敏感性行：可选项，未执行（不阻塞主表）。
+- 连线与 P&R 面积按计划排除；Nangate45 无 PG header/isolation 单元，对应项 N/A。
+
+## Table 3（same-口径 re-estimated，2026-10-18）
+
+面积单位 = 一个 HetSub tile；单位 µm²；≥4 位小数。分母为同 flow 重新综合的 Baseline（非原表 0.2303 mm²）。
+
+| Configuration | Flit Buffer/Logic | RC Unit | VA Unit | SA Unit | Crossbar | VC Table | Other | LIC | Batch Scheduling | HetSub modules | Total | Increase by % |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Baseline（re-synthesized） | 48351.3520 | 43.8900 | 3708.0400 | 702.7720 | 12320.0560 | 460.9780 | 0.0000 | – | – | – | 65587.0880 | – |
+| HetSub tile | 39494.0840 | 68.6280 | 3857.7980 | 850.1360 | 10664.7380 | 572.9640 | 0.0000 | – | – | 4416.6640 | 59925.0120 | **-8.6329%** |
+
+列增幅（对同 flow Baseline）：Flit Buffer -18.3186%、RC +56.3636%、VA +4.0387%、SA +20.9690%、Crossbar -13.4360%、VC Table +24.2931%。
+
+HetSub modules 子列明细：`hetsub_select_pg` 117.0400 + `hetsub_bypass` 1064.2660 + `hetsub_relay_rx` 1657.4460 + `hetsub_relay_tx` 1577.9120 = 4416.6640。
+
+### 一页口径说明
+
+1. **单一口径**：Nangate45 typ（pinned SHA `2efd0b32…5895`，Yosys 用其派生副本 SHA `55b248d6…38d9`），单一时钟约束 1.0 ns（1 GHz），buffer 建模为 flops（无 memory blackbox），Baseline 与 HetSub 完全同一 flow（`proc; opt -noff; techmap; dfflibmap; abc`）。不与 ALPHA 原表（45 nm、Synopsys DC）数值混用；原环境不可恢复（E0.1），故为"同口径 re-estimated"。
+2. **面积来源**：Yosys `stat -liberty` 单一层级 top（`baseline_router` / `hetsub_tile_top`）；分项取该 top 内层级面积，保留面积归属所需模块边界；不得把独立综合的子模块面积直接相加冒充 Total。`Other = Total − attributed`，两设计均为 0.0000（无重复计数）。
+3. **归属边界**：Flit Buffer/Logic = vc_buffer；RC = rc_xy（Baseline）/ rc_mono + rc_xy（HetSub）；VA = vc_alloc + 其内 rr_arb 实例；SA = sw_alloc + 其内 rr_arb 实例；Crossbar、VC Table 按实例所在 router 归属；HetSub 专属机制（select_pg、bypass、relay_tx/rx）单列，不隐藏在 Other。Algorithm 2 为离线计算（无面积），其配置存储/bypass 控制计入 bypass。
+4. **时序门（FAIL，保留）**：OpenSTA `report_wns`：Baseline **-6.2300**、HetSub **-3.1200**（1 GHz）。两设计均无 latch、无未映射单元、无 blackbox；WNS 失败不为降低面积而调约束。WNS 在 `fix_ports.py` 修复端口名后的可链接子集上测得（abc 单元端口名仅唯一可恢复者被重命名；歧义实例 Baseline 2032 / HetSub 1613 被排除于 WNS 之外）——面积不受此影响（来自完整层级设计）。
+5. **时序单元占比**：Baseline 48.75%（31973.2000）、HetSub 49.36%（29579.2000）。
+6. **负收益与边界**：HetSub tile 面积低于 Baseline 主要来自窄 flit（64-bit）buffer/crossbar 缩小；RC、VA、SA、VC Table 与专属机制均为净增加。此结果是同口径面积核算，不是原文 16% 面积节省的复现，也不构成性能优势主张。
+7. **可选项**：128/56 敏感性行未执行（不阻塞主表）。
+
+命令与报告路径：`yosys syn/syn_baseline.ys` → `rtl/syn/log_baseline.txt`；`yosys syn/syn_hetsub.ys` → `rtl/syn/log_hetsub.txt`；`sta -no_splash -exit syn/sta_baseline.tcl` / `syn/sta_hetsub.tcl`。RTL commit `c8cc0806`。功能门（6 项）2026-10-18 重跑全部 PASS。

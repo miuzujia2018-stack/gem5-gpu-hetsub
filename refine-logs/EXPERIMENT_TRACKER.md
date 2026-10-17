@@ -1,22 +1,22 @@
 # HetSub RTL 面积实验跟踪表
 
-生成时间：2026-10-17 13:06:31 CST  
-当前状态：`E0 DONE / E1.1 PASS / E2.1–E2.4 PASS / E1.2 PENDING (toolchain download)`
+生成时间：2026-10-17 13:06:31 CST（执行记录更新至 2026-10-18）  
+当前状态：`E0 DONE / E1.1 PASS / E2.1–E2.4 PASS / E1.2 PASS(除 WNS FAIL) / E1.3 N/A / E3.1 PASS(除 WNS FAIL) / E3.2 PASS / E4.1 DONE（Table 3 已生成）`
 
 | ID | 实验/检查 | 关键变量 | 主要指标 | 通过条件 | 状态 |
 |---|---|---|---|---|---|
 | E0.1 | 恢复 ALPHA 综合口径 | library/version、PVT、clock、buffer 实现 | 来源完备性 | 足以唯一执行；否则正式转为 re-estimated | 完成（转 re-estimated） |
 | E0.2 | 固定面积边界 | router/tile scope、PG cells、wire exclusion | 纳入/排除清单 | Baseline 与 HetSub 定义一致 | 完成 |
 | E1.1 | Baseline RTL 定向仿真 | 5-port、128-bit、2 VC、depth 4/1 | 守恒、credit、路由 | 全部断言通过并排空 | PASS |
-| E1.2 | Baseline 正式综合 | 固定 45 nm flow | total、hier area、WNS | 已解析/已约束/WNS≥0；memory 非零 | 待办 |
-| E1.3 | 原表校准判定 | 同原环境时才适用 | 与 0.2303 mm² 差异 | ≤5% 才允许直接追加原表 | 待办 |
+| E1.2 | Baseline 正式综合 | 固定 45 nm flow | total、hier area、WNS | 已解析/已约束/WNS≥0；memory 非零 | PASS（WNS -6.2300 FAIL，保留） |
+| E1.3 | 原表校准判定 | 同原环境时才适用 | 与 0.2303 mm² 差异 | ≤5% 才允许直接追加原表 | N/A（原环境不可恢复，分母为同 flow Baseline） |
 | E2.1 | L/M router 仿真 | L 128/1VC；M 64/2VC | 路由、VA/SA、反压 | 定向流量守恒并排空 | PASS |
 | E2.2 | relay 仿真 | 128↔64、partial tail、backpressure | 字节一致、占用有界 | 无丢失/重复/重排 | PASS |
 | E2.3 | bypass + Algorithm 1 | 合法/非法候选、资源冲突 | 单调性、独占、实际旁路 | 合法承载，非法拒绝 | PASS |
 | E2.4 | select + PG 仿真 | 拥塞阈值、滞回、wake latency | 选网生效、在途安全 | off 前排空，wake 前隔离 | PASS |
-| E3.1 | HetSub top 正式综合 | 与 Baseline 同 flow | total、hier area、WNS | 核心模块均在 top；WNS≥0 | 待办 |
-| E3.2 | 面积归属审计 | hierarchy mapping | 分项、residual、重复计数 | sum(items)+Other=Total | 待办 |
-| E4.1 | 生成 Table 3 | same-flow Baseline 分母 | mm²、Increase % | 数值可追溯到报告 | 待办 |
+| E3.1 | HetSub top 正式综合 | 与 Baseline 同 flow | total、hier area、WNS | 核心模块均在 top；WNS≥0 | PASS（核心模块均在 top；WNS -3.1200 FAIL，保留） |
+| E3.2 | 面积归属审计 | hierarchy mapping | 分项、residual、重复计数 | sum(items)+Other=Total | PASS（两设计 Other=0.0000） |
+| E4.1 | 生成 Table 3 | same-flow Baseline 分母 | mm²、Increase % | 数值可追溯到报告 | DONE（Table 3 见 REPORT.md；Total -8.6329%） |
 
 ## 记录规范
 
@@ -93,3 +93,46 @@
 ### 工具链备注（E0.1 修正）
 
 - 2026-10-17：oss-cad-suite（含 Yosys 与 OpenSTA）正在下载解压至 `/home/siat/tools/oss-cad-suite`；此前"OpenSTA 不可用"的记录作废，WNS 将在 E1.2/E3.1 用 OpenSTA 实测。
+- 2026-10-18：实际使用 Yosys 0.70+157（`/home/siat/tools/oss-cad-suite/bin/yosys`）与 OpenSTA 3.1.0（`/home/siat/tools/OpenSTA/build/sta`）。OpenSTA 无 `report_area`（面积取 Yosys `stat -liberty`），且不能解析行为级 `reg`/`always @(posedge)`（Error 171），故 WNS 在门级网表上测；调用方式为位置参数 cmd_file（`sta -no_splash -exit <tcl>`，`-f` 无效）。独立 abc 不可用，仅 Yosys 内嵌 abc 桥可用。
+
+### E1.2 — Baseline 正式综合（PASS，除 WNS FAIL）
+
+- 2026-10-18，RTL commit `c8cc0806`。
+- 命令：`yosys syn/syn_baseline.ys`（log：`rtl/syn/log_baseline.txt`）；`sta -no_splash -exit syn/sta_baseline.tcl`。
+- 工具/库/约束：Yosys 0.70+157 + OpenSTA 3.1.0；Nangate45 typ（pinned `pdk/Nangate45_typ.lib`，SHA `2efd0b32…5895`；Yosys 用其派生副本 `pdk/Nangate45_typ_yosys.lib`，SHA `55b248d6…38d9`）；1.0 ns（1 GHz）SDC；buffer 建模为 flops（无 blackbox）。
+- 门：完全解析设计（无 unknown-area/行为单元）PASS；无 latch（0 `proc_dlatch`）PASS；memory 非零（无 blackbox，buffer 即 flop 阵列）PASS；WNS ≥ 0 **FAIL（-6.2300）**，保留不调约束。
+- 面积（µm²，top `baseline_router`）：Total 65587.0880，其中时序单元 31973.2000（48.75%）。
+- 结论：Baseline 在同 flow 下可完整归属（Other = 0.0000），但 1 GHz 下时序不收敛；增幅分母取本行 Total。
+
+### E1.3 — 原表校准判定（N/A）
+
+- 原环境（Synopsys DC 版本、PVT corner）不可恢复（E0.1 已转 re-estimated），校准条件不成立；不使用 0.2303 mm² 作为分母。与 0.2303 的差异仅作背景对照，不进入 Table 3 口径。
+
+### E3.1 — HetSub top 正式综合（PASS，除 WNS FAIL）
+
+- 2026-10-18，RTL commit `c8cc0806`。
+- 命令：`yosys syn/syn_hetsub.ys`（log：`rtl/syn/log_hetsub.txt`）；`sta -no_splash -exit syn/sta_hetsub.tcl`。
+- 工具/库/约束：与 E1.2 完全相同（同库、同 1.0 ns 约束、同 buffer 建模、同 `proc; opt -noff; techmap; dfflibmap; abc` flow）。
+- 门：完全解析设计 PASS；无 latch PASS；memory 非零 PASS；核心模块（select_pg、bypass、relay_tx/rx）均在单一 top `hetsub_tile_top` 内 PASS；WNS ≥ 0 **FAIL（-3.1200）**，保留。
+- 面积（µm²，top `hetsub_tile_top`）：Total 59925.0120，其中时序单元 29579.2000（49.36%）。
+- 结论：HetSub tile 面积低于同 flow Baseline（-8.6329%），但两设计在 1 GHz 均不收敛；WNS 失败如实保留。
+
+### E3.2 — 面积归属审计（PASS）
+
+- 2026-10-18。两设计 `sum(items) + Other = Total`，Other 均为 0.0000；无重复计数（每列取该 top 内层级面积，rr_arb 实例按所在分配器归属）。
+- 实例计数（由门级网表模块体解析）：Baseline rr_arb W=10 ×5（vc_alloc）、W=5 ×5（sw_alloc）；HetSub L 侧 rr_arb W=3 ×3（vc_alloc）+ ×3（sw_alloc），M 侧同 Baseline（W=10 ×5、W=5 ×5）。
+- 口径限制（如实记录）：面积来自 Yosys `stat -liberty` 的完整层级设计；WNS 来自 `fix_ports.py` 修复端口名后的可链接子集——abc 生成单元的端口名按 abc 节点命名，仅唯一可恢复者被重命名，歧义实例无法链接（Baseline 2032、HetSub 1613 个实例被排除于 WNS 之外）。两设计的 WNS 均为可链接子集上的值。
+
+### E4.1 — Table 3（DONE）
+
+- 2026-10-18。Table 3 与一页口径说明写入 `.ai/reports/REPORT.md`（"Table 3（same-口径 re-estimated）"节）。
+- 分母为同 flow 重新综合的 Baseline（E1.2），非原表 0.2303 mm²。
+- 结果：Total -8.6329%；列增幅 Flit Buffer -18.3186%、RC +56.3636%、VA +4.0387%、SA +20.9690%、Crossbar -13.4360%、VC Table +24.2931%。
+- 128/56 敏感性行：可选项，未执行（不阻塞主表）。
+
+## 决策日志（补充）
+
+- 2026-10-18：`opt` 默认执行 opt_dff 折叠时钟使能；Nangate45 无 enable-DFF 单元，使能 FF（`$adffe`）无法映射 → 两设计统一 `opt -noff`，每个 FF 保持普通 DFF 由 dfflibmap 映射。
+- 2026-10-18：复位装载非常量（`hop <= cfg_hop`）产生 `$_ALDFF_PP_`（库无匹配、面积未知且 OpenSTA 语法错误）→ `hetsub_bypass` 改为"已消耗计数 + 组合派生预算"，可观测行为不变（复位=满预算，grant=+1）。
+- 2026-10-18：`rr_arb` 动态 part-select（`$shiftx`）写出的网表端口名损坏且产生 latch → 改静态索引等价式（纯比较器、无 latch），功能测试仍全部 PASS。
+- 2026-10-18：WNS 失败（-6.2300 / -3.1200）保留为 FAIL，不为通过门而调约束或反复调参。
