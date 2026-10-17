@@ -1,10 +1,13 @@
-// E1.2 Baseline synthesis — Nangate45 typ, 1 GHz, flops buffers.
-// Same flow as HetSub (E3.1): liberty + dfflibmap + abc, hierarchical top.
-read_liberty pdk/Nangate45_typ.lib
+# E1.2 Baseline synthesis — Nangate45 typ, 1 GHz, flops buffers.
+# Same flow as HetSub (E3.1): liberty + techmap + abc, hierarchical top.
+read_liberty pdk/Nangate45_typ_yosys.lib
 read_verilog src/rr_arb.v src/vc_buffer.v src/rc_xy.v src/vc_table.v src/vc_alloc.v src/sw_alloc.v src/crossbar.v src/baseline_router.v
 hierarchy -check -top baseline_router
-proc; opt; dfflibmap -liberty pdk/Nangate45_typ.lib
-abc -liberty pdk/Nangate45_typ.lib
+# opt -noff: Nangate45 has no enable-DFF cells, so clock-enable folding is
+# disabled; every FF stays a plain DFF that dfflibmap maps to a library cell
+# (no unknown-area/behavioral leftovers). Applied identically to both designs.
+proc; opt -noff; techmap; dfflibmap -liberty pdk/Nangate45_typ_yosys.lib; abc -liberty pdk/Nangate45_typ_yosys.lib -script syn/abc_default.abc
 opt_clean -purge
-stat -liberty pdk/Nangate45_typ.lib
+stat -liberty pdk/Nangate45_typ_yosys.lib
+# Hierarchical per-module areas (Table 3 attribution) from the re-imported design.
 write_verilog syn/out_baseline_netlist.v

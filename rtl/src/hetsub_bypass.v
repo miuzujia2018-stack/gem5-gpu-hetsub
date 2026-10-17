@@ -17,7 +17,13 @@ module hetsub_bypass (
     output reg  [5-1:0]    block,      // normal RC/VA path blocked for this input
     output reg  [5-1:0]    exclusive   // output port held exclusively by bypass
 );
-    reg [5*2-1:0] hop;
+    // Hop budget storage. Equivalent formulation: keep the consumed count in
+    // plain async-reset-to-0 FFs and derive the remaining budget combinationally
+    // (hop = cfg_hop - used). The direct form (reset loads cfg_hop) needs an
+    // async-load DFF, which Nangate45 does not provide, leaving FFs unmapped
+    // (unknown area). This form maps every FF to a library DFF with identical
+    // observable behavior: reset => used=0 (hop=cfg_hop), grant => used+1.
+    reg [5*2-1:0] used;
 
     function legal;
         input integer p; input integer oc;
@@ -35,7 +41,7 @@ module hetsub_bypass (
     reg [5-1:0] req, grant;
     always @* begin
         for (p = 0; p < 5; p = p + 1)
-            req[p] = cfg_en[p] && hop[p*2 +: 2] > 0 && valid_in[p]
+            req[p] = cfg_en[p] && used[p*2 +: 2] < cfg_hop[p*2 +: 2] && valid_in[p]
                 && type_in[p*2 +: 2] == 2'd0 && legal(p, cfg_out[p*3 +: 3]);
         for (p = 0; p < 5; p = p + 1) begin
             oc = cfg_out[p*3 +: 3];
@@ -60,10 +66,10 @@ module hetsub_bypass (
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            for (p = 0; p < 5; p = p + 1) hop[p*2 +: 2] <= cfg_hop[p*2 +: 2];
+            for (p = 0; p < 5; p = p + 1) used[p*2 +: 2] <= 2'd0;
         end else begin
             for (p = 0; p < 5; p = p + 1)
-                if (grant[p]) hop[p*2 +: 2] <= hop[p*2 +: 2] - 1;
+                if (grant[p]) used[p*2 +: 2] <= used[p*2 +: 2] + 1;
         end
     end
 endmodule

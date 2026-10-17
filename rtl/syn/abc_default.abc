@@ -1,0 +1,17 @@
+# Default yosys-abc mapping script (same passes as yosys's built-in default).
+# The bridge re-import names abc-created cells by their internal node names
+# instead of liberty pin names, so the written netlist needs a post-process
+# port fix before OpenSTA can link it (see syn/fix_ports.py). Area comes from
+# the hierarchical stat -liberty in the same run.
+strash
+&get -n
+&fraig -x
+&put
+scorr
+dc2
+dretime
+strash
+&get -n
+&dch -f
+&nf
+&put
