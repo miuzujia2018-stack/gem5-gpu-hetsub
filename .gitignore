@@ -186,3 +186,6 @@ running-gem5-gpu-output.txt
 chat.md
 codex-*.md
 .build_provenance/
+
+# Icarus Verilog build artifacts
+rtl/sim_*

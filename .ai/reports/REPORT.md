@@ -338,3 +338,33 @@ R2 全部条目完成；方法保持冻结。最终 Code Review 由用户执行�
 - 与 20261017 独立审查（`docs/HETSUB_READONLY_REVIEW_20261017.md`，提交 `515fd49c`）的对接：F1 已独立复算确认——在内存调用现有 `insert(profile,128,limit)`（阈值与冲突规则不变，不写配置、不仿真），两 pilot 均 limit=4 → 4 条 level-1（即冻结配置）、limit=100 → 4+9=13；复算逐行精确复现冻结 `configs/{backprop,kmeans}.csv`（30 行）；11 条 `limit` 拒绝条目中 9 条解除预算后可选、2 条（`10→17`、`17→9`）转为冲突。现有 static 结果按"最多 4 条有向 shortcut 的 Algorithm 2 预算变体"命名。F4 解决 GPU 16/10 陈旧文字（实际均为 10 CudaCore、10 clusters×1 core，audit `ok:true`）。三份 R4 文档已按该审查更新（主张索引行 9、公平性第 1/2/5 节、方法描述 §1/A-3(b)/A-6/§3）。
 - 命名同步（用户 20261017 审查后请求的最小文档修正）：`docs/COMPARISON_10C_RESULTS.md` 正式结果表 static 条目统一为 `HetSub static-4`（数值不变），新增 static-4 命名说明（全局 `--limit=4` 为实现预算、`Router.hh:682-683` 每源至多一个出向 shortcut），完成度行改为"已实现（预算变体 static-4）"；主张索引 §2.1 补充结构性约束与证据性质（4→13 为本地离线复算、`m5out` 未提交 GitHub、用户核实算法逻辑与文档一致性而非具体数字）。无数据、统计或性能结果改动，无重建/仿真。
 - 裁定：**PASS（含 P2 精度注记）→ R4-DOC CLOSED / CORE FREEZE RETAINED**；论文复现完整性按 20261017 审查为 CONDITIONAL（static-4 命名条件），算法与实现正确性 PASS（限冻结配置及已验证范围），性能基准资格 CONDITIONAL（限定命名后 PASS）。`.ai/reviews/REVIEW.md` 未修改。
+
+## GOAL-HS-R5：RTL 面积实验（E0–E2 功能门，2026-10-17）
+
+范围：`rtl/` 下 Verilog 模型与定向测试；无 flexible-pipeline 源码改动，不触发仿真构建门禁。执行口径见 `refine-logs/EXPERIMENT_PLAN.md`，跟踪表见 `refine-logs/EXPERIMENT_TRACKER.md`。
+
+### 功能门（6 项，全部 PASS，2026-10-17）
+
+| 门 | 测试 | 结果 |
+|---|---|---|
+| 1 Baseline 数据路径 | `tb/tb_baseline.v` | PASS：injected=15 delivered=15 drained, credits restored |
+| 2 拥塞选网+滞回 | `tb/tb_select_pg.v` | PASS：hysteresis, wake latency, in-flight safety, isolation |
+| 3 relay 128↔64 | `tb/tb_relay.v` | PASS：4 words byte-exact, beats=7 (held 1), context drained |
+| 4 bypass + Algorithm 1 | `tb/tb_bypass.v` | PASS：legality, exclusivity, block, hop budget |
+| 5 PG 安全 | `tb/tb_select_pg.v` | PASS：off 前排空、wake 前隔离、在途不关断 |
+| 6 守恒与排空 | 各 TB 终态断言 | PASS：注入=交付，credit/VC/relay 上下文排空 |
+
+命令：`iverilog -o sim_<t> tb/tb_<t>.v src/*.v && vvp sim_<t>`（Icarus Verilog 11.0）。
+
+### 本轮实现修正（保留失败证据）
+
+- `hetsub_relay_tx`：原实现在呈现 beat 的同一 posedge 清除 pending，而消费端看到寄存器输出晚一拍，反压时丢 beat。改为 pending 保持到 `ready_in` 实际接受。
+- `hetsub_relay_rx`：`ready_out` 由 `!acc_valid` 改为透传 `ready_in`（完成字的 beat 仍被接受），使 tx/rx 握手一致。
+- `tb_relay`：事件在 posedge 按 DUT 实际使用的值采样，negedge 记分；此前 negedge 相位错开导致误判。
+- `tb_bypass`/`tb_select_pg` 期望值按 NBA 语义与输出端口索引（`byp_valid`/`exclusive` 按输出索引，`block` 按输入索引）修正；DUT 行为本身未改。
+
+### 未完成项
+
+- E1.2/E3.1 正式综合与 WNS：等待 oss-cad-suite（Yosys+OpenSTA）下载解压（当前 407 MB 不完整，后台续传中）。此前"OpenSTA 不可用"记录作废。
+- E3.2 面积归属审计、E4.1 Table 3（含 `HetSub modules` 子列）尚未产生数值。
+- `hetsub_tile_top` 已建立（L+M+relay+bypass+select_pg 单 top），尚未综合。

@@ -1,7 +1,7 @@
 # HetSub RTL 面积实验跟踪表
 
 生成时间：2026-10-17 13:06:31 CST  
-当前状态：`E0 DONE / E1.1 PASS / E1.2 PENDING (yosys install)`
+当前状态：`E0 DONE / E1.1 PASS / E2.1–E2.4 PASS / E1.2 PENDING (toolchain download)`
 
 | ID | 实验/检查 | 关键变量 | 主要指标 | 通过条件 | 状态 |
 |---|---|---|---|---|---|
@@ -10,10 +10,10 @@
 | E1.1 | Baseline RTL 定向仿真 | 5-port、128-bit、2 VC、depth 4/1 | 守恒、credit、路由 | 全部断言通过并排空 | PASS |
 | E1.2 | Baseline 正式综合 | 固定 45 nm flow | total、hier area、WNS | 已解析/已约束/WNS≥0；memory 非零 | 待办 |
 | E1.3 | 原表校准判定 | 同原环境时才适用 | 与 0.2303 mm² 差异 | ≤5% 才允许直接追加原表 | 待办 |
-| E2.1 | L/M router 仿真 | L 128/1VC；M 64/2VC | 路由、VA/SA、反压 | 定向流量守恒并排空 | 待办 |
-| E2.2 | relay 仿真 | 128↔64、partial tail、backpressure | 字节一致、占用有界 | 无丢失/重复/重排 | 待办 |
-| E2.3 | bypass + Algorithm 1 | 合法/非法候选、资源冲突 | 单调性、独占、实际旁路 | 合法承载，非法拒绝 | 待办 |
-| E2.4 | select + PG 仿真 | 拥塞阈值、滞回、wake latency | 选网生效、在途安全 | off 前排空，wake 前隔离 | 待办 |
+| E2.1 | L/M router 仿真 | L 128/1VC；M 64/2VC | 路由、VA/SA、反压 | 定向流量守恒并排空 | PASS |
+| E2.2 | relay 仿真 | 128↔64、partial tail、backpressure | 字节一致、占用有界 | 无丢失/重复/重排 | PASS |
+| E2.3 | bypass + Algorithm 1 | 合法/非法候选、资源冲突 | 单调性、独占、实际旁路 | 合法承载，非法拒绝 | PASS |
+| E2.4 | select + PG 仿真 | 拥塞阈值、滞回、wake latency | 选网生效、在途安全 | off 前排空，wake 前隔离 | PASS |
 | E3.1 | HetSub top 正式综合 | 与 Baseline 同 flow | total、hier area、WNS | 核心模块均在 top；WNS≥0 | 待办 |
 | E3.2 | 面积归属审计 | hierarchy mapping | 分项、residual、重复计数 | sum(items)+Other=Total | 待办 |
 | E4.1 | 生成 Table 3 | same-flow Baseline 分母 | mm²、Increase % | 数值可追溯到报告 | 待办 |
@@ -56,3 +56,38 @@
 - 结果：`PASS tb_baseline: injected=15 delivered=15 drained, credits restored`
 - 覆盖：5 端口各一组 head/body/tail（含 local 与 control VC）、VC 分配、credit 计数、crossbar 交付顺序与内容、守恒与排空、credit 恢复（4/1）。
 - 结论：Baseline 数据路径（accept → VA → VC 表 → SA → crossbar）功能正确。
+
+### E2.1 — L/M router 定向仿真（PASS）
+
+- 2026-10-17：`iverilog -o sim_l tb/tb_l_router.v src/rr_arb.v src/hetsub_l_router.v && vvp sim_l`
+  → `PASS tb_l_router: injected=9 delivered=9 drained, credits restored`
+- 2026-10-17：`iverilog -o sim_m tb/tb_m_router.v src/rr_arb.v src/hetsub_m_router.v && vvp sim_m`
+  → `PASS tb_m_router: injected=15 delivered=15 drained, credits restored`
+- 覆盖：L（3-port、128-bit、1 VC）与 M（5-port、64-bit、2 VC，含 depth-1 control VC）的 VC 分配、credit、crossbar 交付内容/顺序、守恒与排空。
+- 结论：双子网 router 数据路径功能正确。
+
+### E2.2 — relay 128↔64 定向仿真（PASS）
+
+- 2026-10-17：`iverilog -o sim_relay tb/tb_relay.v src/hetsub_relay_tx.v src/hetsub_relay_rx.v && vvp sim_relay`
+  → `PASS tb_relay: 4 words byte-exact, beats=7 (held 1), context drained`
+- 覆盖：全字、partial tail（12 字节 2 beat、5 字节单 beat）、每 6 周期反压（beat 保持至被接受）、字节一致、有界上下文排空。
+- 修正记录：tx 原实现把已呈现 beat 在呈现同一周期清除，消费端（寄存器输出晚一拍）反压时丢 beat；改为 pending 保持到 ready_in。rx 的 ready_out 改为透传 ready_in（完成字的 beat 仍被接受）。TB 在 posedge 采样 DUT 实际使用的事件。
+- 结论：序列化/反序列化在反压下无丢失、无重复、无重排。
+
+### E2.3 — bypass + Algorithm 1 定向仿真（PASS）
+
+- 2026-10-17：`iverilog -o sim_bypass tb/tb_bypass.v src/hetsub_bypass.v && vvp sim_bypass`
+  → `PASS tb_bypass: legality, exclusivity, block, hop budget`
+- 覆盖：合法单调 grant（block/exclusive 置位、flit 路由到独占输出）、非法转折拒绝、非 head 拒绝、同输出冲突双方拒绝、hop 预算递减至耗尽后拒绝。
+- 结论：Algorithm 1 单调性与独占性在数据路径中生效；被 grant 的输入被 block 阻止进入正常 RC/VA。
+
+### E2.4 — select + PG 定向仿真（PASS）
+
+- 2026-10-17：`iverilog -o sim_pg tb/tb_select_pg.v src/hetsub_select_pg.v && vvp sim_pg`
+  → `PASS tb_select_pg: hysteresis, wake latency, in-flight safety, isolation`
+- 覆盖：th_hi/th_lo 滞回（hold band）、OFF→WAKING→ON wake latency 计数、ON→OFF 仅在 sel=L 且无在途、OFF/WAKING 期间 m_enable=0（隔离）。
+- 结论：拥塞驱动选网与 PG 安全约束功能正确。
+
+### 工具链备注（E0.1 修正）
+
+- 2026-10-17：oss-cad-suite（含 Yosys 与 OpenSTA）正在下载解压至 `/home/siat/tools/oss-cad-suite`；此前"OpenSTA 不可用"的记录作废，WNS 将在 E1.2/E3.1 用 OpenSTA 实测。
