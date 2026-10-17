@@ -19,7 +19,7 @@ R4-0 基线门禁（本次核对）：五个 gitlink 与目标文件所列冻结
 | III-A | 异构双子网：常开宽 Line 子网（16-byte flit）与可休眠窄 Mesh 子网（8 或 7 bytes，`options.hetsub_mesh_bytes`）；Line 走 Hilbert 序路由，Mesh 走 XY | 拥塞定义为**所有端口 buffer 总占用**；置位/复位阈值；状态保持一段时间；双向分流比例；**原文未定义采样周期** |
 | III-B | 真实宽窄 flit 与序列化/反序列化；低流量时选择策略被屏蔽，全部消息进入常开 dual-line | 长程链路以"special packets"形式预加载到路由器（p. 3136） |
 | Algorithm 1 | 单调 shortcut 限制：仅当目的地位于当前→shortcut 端点→目的地的路径上才允许使用（p. 3136–3137） | — |
-| Algorithm 2 | Hilbert 分层插入：排除相邻子块、流量阈值、严格层级优先、无 2×2 层、≤2 hop、crossbar ≤5、每节点 ≤2 入向与 ≤2 出向长程链路（p. 3138） | — |
+| Algorithm 2 | Hilbert 分层插入：排除相邻子块、流量阈值、严格层级优先、无 2×2 层、≤2 hop、crossbar ≤5、每节点 ≤2 入向与 ≤2 出向长程链路（p. 3138）。输入仅 HSC 阶数与流量阈值，**无全局 limit** | 实现另有全局 `--limit=4` 预算（F1，见 A-6） |
 | IV-A | PG 三态（active/sleep/waking），WU 6 cycles，转换代价 10 cycles（p. 3139） | — |
 | V | 长程链路过程"currently static"，动态化列为 future work（p. 3143） | 本实现的 static 模式与原文一致；动态选择属于 III-B 的 III-A 拥塞机制，不属于长程链路动态化 |
 
@@ -45,7 +45,7 @@ R4-0 基线门禁（本次核对）：五个 gitlink 与目标文件所列冻结
 
 - 论文依据：III-A（所有端口 buffer 总占用、置位/复位阈值、状态保持、双向分流；无采样周期定义）。
 - 实现：`HetSubPolicy.hh:71-109`——`updateSignal`（77-84：75% 进入 / 50% 退出滞回）、`sample`（87-96：双向 quarters）、`preview`（98-103）、`commit`（105-109）；调用链 `NetworkInterface.cc:315`（`hetChoose`）→ `GarnetNetwork.cc:326-343`（128-cycle 采样门 334、local ≤2、preview）→ `:346-353`（`hetCommit`）。
-- 已披露适配差异（P2，非阻塞）：(a) 反馈范围为每 vnet 最忙 transit 端口（`Router.cc:2375-2389`，2379 行注释明示不掩盖满队列，资源核算仍用 `hetOccupancy` 2353-2372），与原文"所有端口总占用"口径不同；(b) 128-cycle 采样门是实现选择，原文未定义采样周期；(c) 低流量屏蔽路径存在（`hetChoose` static/force 分支），与 III-B 一致；(d) ordered vnet 钉在 M 单一路径（`HetSubPolicy.hh:98-103`、`GarnetNetwork.cc:330-331`）以保证 Ruby 协议顺序，原文优先选择 L，方向差异为已披露工程适配。
+- 已披露适配差异（P2，非阻塞）：(a) 反馈范围为每 vnet 最忙 transit 端口（`Router.cc:2375-2389`，2379 行注释明示不掩盖满队列，资源核算仍用 `hetOccupancy` 2353-2372），与原文"所有端口总占用"口径不同；(b) 128-cycle 是实现选择的相邻采样最小间隔（请求触发；无请求时不更新），原文未定义采样周期，不宜解释为最多滞后 128 cycles 的状态陈旧度上限；(c) 低流量屏蔽路径存在（`hetChoose` static/force 分支），与 III-B 一致；(d) ordered vnet 钉在 M 单一路径（`HetSubPolicy.hh:98-103`、`GarnetNetwork.cc:330-331`）以保证 Ruby 协议顺序，原文优先选择 L，方向差异为已披露工程适配。
 - 证据：实际分流与压力检查（p4/p6 历史运行）；本次 `validate_network.py` policy_load PASS（两 vnet 均有实际注入）。
 - 类型：源码直接证明（机制与调用链）+ 历史运行证据（实际分流）；"与原文全局拥塞定义等价"为**未验证**，不允许主张。
 
@@ -71,6 +71,7 @@ R4-0 基线门禁（本次核对）：五个 gitlink 与目标文件所列冻结
 - 实现（Algorithm 1）：`HetSubPolicy.hh:48-52`（`shortcutAllowed`：`(c<e && e<=d) || (d<=e && e<c)`），调用点 `Router.cc:1334`。
 - 实现（Algorithm 2）：`tools/hetsub/insert_shortcuts.py`——`hilbert_order()`（13-27，与 `HetSubPolicy.hh::Geometry` 同一算法，`test_insertion.py` 断言一致）、`candidates()`（29-48：level 1 = 4×4 区域中心、level 2 = 2×2 子块、排除相邻 `abs(i-j)<=1`、无最低 2×2 层）、`insert()`（85-107：threshold 128 B、limit 4、冲突集）；运行侧校验 `HetSub.py:88-104`（≤3 节点、相邻性、冲突集）。
 - 已披露差异（P2，非阻塞）：冲突粒度为按 (tile, 端口/方向) 与有向物理边去重（`insert_shortcuts.py:73-82`、`HetSub.py:92-103`），**不是**原文的每节点 ≤2 入/出上限；实现不限制每节点总数。同一 tile 作为起点/终点时，本地接入位（`-1`/`L`）冲突仍限制相应角色（R3-DOC-01），与端口/方向冲突集不矛盾。
+- **F1（主张范围条件，P1 级完整复现主张）**：原文 Algorithm 2 无全局 limit；实现的全局 `--limit=4`（`insert_shortcuts.py:95-96`、`run_comparison_campaign.sh:31`）确实改变选择结果。本次在内存复用两个现有 pilot profile（阈值与冲突规则不变）：limit=4 → 每应用 4 条 level-1（即冻结配置）；limit=100 → 4 + 9 条 level-2 = 13；冻结 CSV 的 11 条 `limit` 条目中 9 条解除预算后可选、2 条（`10→17`、`17→9`）转为冲突。现有 static 结果须命名为"最多 4 条有向 shortcut 的 Algorithm 2 预算变体"；定向 level-2 运行只证明代码支持该层，不证明正式配置执行了所有符合条件的层级插入。保留现有配置与负结果即可，不要求新增实验。
 - 证据：`test_insertion.py` 5 项测试（本次复跑全部 OK，含 level-2 唯一选中）；冻结配置（两应用各 4 条 level-1：27→36、35→28、36→27、28→35；全部 level-2 候选 below_threshold/limit）；定向运行实际承载（relay frames>0、beats>0、排空）。
 - 类型：源码直接证明 + 历史运行证据。仅凭离线生成配置不构成实际承载证据（已分列）。
 
@@ -83,4 +84,6 @@ R4-0 基线门禁（本次核对）：五个 gitlink 与目标文件所列冻结
 
 ## 3. 不允许的主张（与 R2/R3 一致）
 
-不引用原文 38%/58%/16% 作为本实现结果；不声称完整面积等价、实际功耗（J/W）或 2 GHz 时序证明；不声称拥塞反馈与原文全局定义等价；不声称每节点 ≤2 长程链路上限已实现；不把静态传播 segments-cycles 当作 RTL/布局校准结果。
+不引用原文 38%/58%/16% 作为本实现结果；不声称完整面积等价、实际功耗（J/W）或 2 GHz 时序证明；不声称拥塞反馈与原文全局定义等价；不声称每节点 ≤2 长程链路上限已实现；不把静态传播 segments-cycles 当作 RTL/布局校准结果；不把现有 static 结果称为未截断 Algorithm 2 的完整复现（须按"最多 4 条有向 shortcut 的 Algorithm 2 预算变体"命名，F1）。
+
+交叉引用：用户 20261017 独立审查 `docs/HETSUB_READONLY_REVIEW_20261017.md`（提交 `515fd49c`）——F1（Algorithm 2 全局预算，本次已独立复算确认）、F2（拥塞口径与 128-cycle 最小间隔）、F3（资源/时序/统计人口边界）、F4（GPU 16/10 陈旧文字已解决）。本文件上述条目与该审查一致。

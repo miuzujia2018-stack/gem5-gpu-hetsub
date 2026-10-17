@@ -14,7 +14,7 @@
 | 6 | PG 三态、6-cycle WU、10-cycle 转换 | IV-A（p. 3139） | `Router.cc:2438-2464/2424-2435/2403-2421/2392-2401` | pg_mesh 状态分解（725,371/212/1,272=64×12000）；正式批次 M sleep 99.93%/99.89% | 源码 + 历史运行 | 已实现（周期记账代理）；净能量未验证 |
 | 7 | 静态 long-link / crossbar bypass / 有界 relay / 背压 | III-B（p. 3136）、V（p. 3143） | `GarnetNetwork.cc:260-311`（308-309）；`NetworkLink.cc:179-184`；`HetSubRelay.cc:10-12/73/105-135/141`；`HetSub.py:77-78` | static_level2（1,176 beats/202 stalls/19 deferrals）、static8（372/6/0）、排空断言 | 源码 + 历史运行 | 已实现（保守近似，未工艺校准） |
 | 8 | Algorithm 1 单调 shortcut 限制 | p. 3136–3137 | `HetSubPolicy.hh:48-52`；`Router.cc:1334` | 定向用例与通道依赖检查 | 源码 + 历史运行 | 已实现 |
-| 9 | Algorithm 2 Hilbert 分层插入（threshold 128 B、limit 4、排除相邻、无 2×2 层） | p. 3138 | `insert_shortcuts.py:13-27/29-48/85-107`；`HetSub.py:88-104` | `test_insertion.py` 5 项（本次复跑 OK）；冻结配置 4 条 level-1（27→36、35→28、36→27、28→35）；定向运行实际承载 | 源码 + 历史运行 | 已实现；每节点 ≤2 上限：未实现（冲突按 (tile,端口/方向) 与有向边去重，`insert_shortcuts.py:73-82`、`HetSub.py:92-103`） |
+| 9 | Algorithm 2 Hilbert 分层插入（threshold 128 B、排除相邻、无 2×2 层）；`limit=4` 为实现预算，非论文规格 | p. 3138（输入仅 HSC 阶数与流量阈值，无全局 limit） | `insert_shortcuts.py:13-27/29-48/85-107`（95-96 `reason='limit'`）、`run_comparison_campaign.sh:31`（`--limit=4`）；`HetSub.py:88-104` | `test_insertion.py` 5 项（本次复跑 OK）；冻结配置 4 条 level-1（27→36、35→28、36→27、28→35）；定向运行实际承载 | 源码 + 历史运行 | 已实现（预算变体）；现有 static 结果须命名为"最多 4 条有向 shortcut 的 Algorithm 2 预算变体"（F1，见 §2.1）；每节点 ≤2 上限：未实现（冲突按 (tile,端口/方向) 与有向边去重，`insert_shortcuts.py:73-82`、`HetSub.py:92-103`） |
 | 10 | 守恒、顺序、端到端交付与排空边界 | — | `NetworkInterface.cc:54-119/263-269/272-276/411-425/423-464`；`HetSubRelay.cc:56-67` | 16 案例正常退出 + CPU 数值参考；Network_test 显式排空；`check_dependencies.py` 4096/130/129 acyclic | 源码 + 历史运行 | 已实现；应用边界不声称全网排空（8–47 在途） |
 
 ## 2. 可复现数值（本次重算，全部与记录核对）
@@ -33,6 +33,20 @@
 | eligible-region flow fraction | 24.8563%（249,744/1,004,752） | 24.6639%（264,608/1,072,856） | 与 R2 记录一致 |
 | relay 转换字节 ÷2 / 同运行注入字节 | 38.24%（384,216/1,004,808） | 38.89%（417,256/1,072,784） | 与 R2-2(4)/R2-4 一致；上界代理，非严格命中率 |
 
+### 2.1 F1：Algorithm 2 全局预算（本次独立复算，与用户 20261017 审查一致）
+
+在内存调用现有 `insert(profile, 128, limit)`（阈值与冲突规则不变，不写配置、不仿真），输入为正式批次 pilot `profile.csv`：
+
+| pilot | limit=4（冻结配置） | limit=100（对本例不构成限制） | 冻结 CSV `limit` 条目 |
+|---|---:|---:|---:|
+| backprop | 4 条 level-1 | 4 level-1 + 9 level-2 = 13 | 11 |
+| kmeans | 4 条 level-1 | 4 level-1 + 9 level-2 = 13 | 11 |
+
+- 复算逐行精确复现冻结 `configs/{backprop,kmeans}.csv`（30 行审计）。
+- 两应用额外可选端点相同：`9→17,18→9,17→10,21→14,14→21,49→42,42→49,53→46,46→53`。
+- 11 个被预算拒绝候选中，解除预算后 9 个可选、2 个（`10→17`、`17→9`）转为冲突——不能把 11 个全部认作可并存链路。例：backprop `9→17` 流量 5208 B > 128 B，仍因 `limit` 被拒。
+- 13 条不代表其运行正确性或性能已验证；现有 static 结果按"最多 4 条有向 shortcut 的 Algorithm 2 预算变体"命名。
+
 ## 3. 证据位置与可复核命令（只读，不触发重跑）
 
 | 证据 | 位置 |
@@ -42,7 +56,8 @@
 | 物理/虚拟活动重分析（N1-1） | `…/reanalysis_wire_classification_backprop.json`、`…_kmeans.json` |
 | 资源与 PG 口径 | `.ai/reports/RESOURCE_AUDIT.md` |
 | 执行历史与构建凭据 | `.ai/reports/REPORT.md` |
-| 插入算法测试与冻结配置 | `tools/hetsub/test_insertion.py`、`…/fixtures/`、`m5out/comparison_10c/formal_10c_v2_20261015/configs/{backprop,kmeans}.json` |
+| 插入算法测试与冻结配置 | `tools/hetsub/test_insertion.py`、`…/fixtures/`、`m5out/comparison_10c/formal_10c_v2_20261015/configs/{backprop,kmeans}.json`（含逐候选审计 `configs/{backprop,kmeans}.csv`，F1 的 11 条 `limit` 条目） |
+| 20261017 独立审查（F1–F4） | `docs/HETSUB_READONLY_REVIEW_20261017.md`（提交 `515fd49c`） |
 | 定向 level-2 运行 | `m5out/hetsub_network/20261015T152707Z/static_level2` |
 | p6 pilot profile（F-R4-01 对照） | `m5out/hetsub_apps/p6_dual8_pilot/backprop/profile.csv`、`p6_kmeans_pilot/kmeans/profile.csv` |
 
@@ -56,4 +71,4 @@ cd tools/hetsub && PYTHONDONTWRITEBYTECODE=1 python3 test_insertion.py
 
 ## 4. 状态
 
-无新增已确认关键缺陷；F-R4-01/F-R4-02/F-R4-03 为文档精度 P2，不改变任何定性结论；GPU 16/10 口径仍待用户确认。本轮为文档一致性复核 + 既有源码锚点引用 + 离线脚本复跑，非新一轮完整独立 Code Review（见公平性文档第 1 节证据基础）。裁定：**R4-DOC CLOSED / CORE FREEZE RETAINED**。
+无新增已确认关键缺陷；F-R4-01/F-R4-02/F-R4-03 为文档精度 P2，不改变任何定性结论。GPU 16/10 口径已由 20261017 审查 F4 解决（陈旧文字，非当前阻塞）：正式与 pilot 实际配置均为 10 CudaCore、10 clusters×1 core，两个 audit `ok:true`。本轮为文档一致性复核 + 既有源码锚点引用 + 离线脚本复跑，非新一轮完整独立 Code Review（见公平性文档第 1 节证据基础）；F1 的 4-vs-13 已按 §2.1 独立复算确认，与用户 20261017 审查一致。裁定：**R4-DOC CLOSED / CORE FREEZE RETAINED**；论文复现完整性按 20261017 审查为 CONDITIONAL（须按 static-4 命名，见公平性文档第 5 节）。
