@@ -1,5 +1,17 @@
 # Review — HetSub 最小适配设计（2026-10-15）
 
+## 2026-10-17 本地论文、源码与既有产物只读复核
+
+最新报告：[HetSub flexible Garnet 源码与科研基准审查](../../docs/HETSUB_READONLY_REVIEW_20261017.md)。基线父仓 `badfbe00`、gem5 `a90c04ca`。本轮直接读取论文并查看 Algorithm 1/2 页面图像，核对 NI→VC 请求→路由→物理链路→relay→交付；仅离线重查既有结果，没有新仿真、构建或源码改动。
+
+**裁决：复现完整性 CONDITIONAL；算法正确性 PASS（冻结范围）；性能基准资格 CONDITIONAL，明确适配与 static-4 命名后 PASS。核心实现继续冻结。**
+
+新增已证实 F1：正式入口 `--limit=4` 是论文 Algorithm 2 没有的全局预算；已有两 pilot 在保持阈值/冲突规则下，limit=4 均选 4 条，非约束上限均选 13 条（额外 9 条 level-2）。该发现只阻止把正式 static 结果称为未截断 Algorithm 2，不证明数据路径错误或扩大配置后的收益。最低处理是命名为“4 条有向 shortcut 的受限变体”，不要求重跑或修改 flexible。
+
+动态反馈与 ordered-M 差异继续披露；128-cycle 仅是最小采样间隔，不是最大陈旧度。正式实际配置已核实为 10 CudaCore / 10×1 clusters，R4 的“16/10 待确认”是历史文字。三项既有网络 validator 与一个依赖枚举通过，两个正式 audit 各 8 项无错误；证据层级与未复查项见完整报告。上述结论取代旧报告中对未截断 Algorithm 2 的过宽概括，不取消既有固定平台受限比较的资格。
+
+---
+
 ## GOAL-HS-R3 最终定向独立审查（2026-10-16）
 
 **VERDICT: APPROVE（研究范围限定）/ STOP / FREEZE**；审查基线 `65c16fa43d28818a0fc484bcd64ddc5797b39f87`；`method_status: CONDITIONAL APPROVE / FREEZE`；`scope: HetSub fixed-gem5-gpu method fidelity, not original experimental/performance/RTL/power reproduction`。此次 GitHub 审查直接比对 R3 报告、提交差分、冻结 `gem5` 源码 `a90c04ca...`、插入脚本和五个父仓 gitlinks；**未直接读取原论文 PDF，本轮未接触 ignored 本地 m5out 原始日志，未独立执行报告声称的 BUILD-PROVENANCE、验证器或仿真**。原文页码/引用与本地执行结果属于 R3 执行报告给出的证据，需按这个证据等级引用，不能称本审查独立重跑。

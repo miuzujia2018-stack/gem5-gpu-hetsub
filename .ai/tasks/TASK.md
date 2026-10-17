@@ -1,5 +1,11 @@
 # Active Task — HetSub 核心机制实施（2026-10-15）
 
+## 2026-10-17 用户要求的只读审查（已完成）
+
+范围：直接对照本地论文 Algorithm 1/2 与 flexible 实际数据路径，复用历史实验；不修改源代码/配置、不创建新开发任务、不重跑仿真。交付为 `docs/HETSUB_READONLY_REVIEW_20261017.md` 和 REVIEW 最新节。
+
+结果：核心代码继续冻结；复现完整性 CONDITIONAL、算法正确性限定 PASS、比较资格以明确适配和 static-4 命名为条件。新增证据证明正式 `--limit=4` 会截断仍合法的 level-2 候选，不能用既有结果声称未截断 Algorithm 2 的完整复现。最小处置仅为收窄方法与结果主张，现有 v2 数据可用于明确命名的正式比较；本轮不授权取消预算或新增实验。下文旧“唯一目标”及无遗漏表述按本次报告边界理解。
+
 ## 2026-10-16 全面 Code Review 后的当前任务
 
 最新权威审查与下一阶段计划为 [HetSub 方法复现全面 Code Review 与下一阶段研究计划](../../docs/HETSUB_COMPREHENSIVE_CODE_REVIEW_AND_NEXT_PLAN_20261016.md)。裁决为：方法复现完整性 `CONDITIONAL`、算法与功能正确性 `PASS`、固定平台性能基准资格 `PASS（限定）`，综合 `CONDITIONAL APPROVE / FREEZE`。
