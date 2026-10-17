@@ -70,7 +70,7 @@ R4-0 基线门禁（本次核对）：五个 gitlink 与目标文件所列冻结
 - 论文依据：Algorithm 1（p. 3136–3137）、Algorithm 2（p. 3138）。
 - 实现（Algorithm 1）：`HetSubPolicy.hh:48-52`（`shortcutAllowed`：`(c<e && e<=d) || (d<=e && e<c)`），调用点 `Router.cc:1334`。
 - 实现（Algorithm 2）：`tools/hetsub/insert_shortcuts.py`——`hilbert_order()`（13-27，与 `HetSubPolicy.hh::Geometry` 同一算法，`test_insertion.py` 断言一致）、`candidates()`（29-48：level 1 = 4×4 区域中心、level 2 = 2×2 子块、排除相邻 `abs(i-j)<=1`、无最低 2×2 层）、`insert()`（85-107：threshold 128 B、limit 4、冲突集）；运行侧校验 `HetSub.py:88-104`（≤3 节点、相邻性、冲突集）。
-- 已披露差异（P2，非阻塞）：冲突粒度为按 (tile, 端口/方向) 与有向物理边去重（`insert_shortcuts.py:73-82`、`HetSub.py:92-103`），**不是**原文的每节点 ≤2 入/出上限；实现不限制每节点总数。同一 tile 作为起点/终点时，本地接入位（`-1`/`L`）冲突仍限制相应角色（R3-DOC-01），与端口/方向冲突集不矛盾。
+- 已披露差异（P2，非阻塞）：冲突粒度为按 (tile, 端口/方向) 与有向物理边去重（`insert_shortcuts.py:73-82`、`HetSub.py:92-103`），**不是**原文的每节点 ≤2 入/出上限；实现不限制每节点总数。同一 tile 作为起点/终点时，本地接入位（`-1`/`L`）冲突仍限制相应角色（R3-DOC-01），与端口/方向冲突集不矛盾。另有结构性约束：`Router.hh:682-683` 每路由器只保存一个 shortcut 目的与出向端口，即每源路由器至多一个出向 shortcut；不能声称覆盖论文允许的全部链路组合。
 - **F1（主张范围条件，P1 级完整复现主张）**：原文 Algorithm 2 无全局 limit；实现的全局 `--limit=4`（`insert_shortcuts.py:95-96`、`run_comparison_campaign.sh:31`）确实改变选择结果。本次在内存复用两个现有 pilot profile（阈值与冲突规则不变）：limit=4 → 每应用 4 条 level-1（即冻结配置）；limit=100 → 4 + 9 条 level-2 = 13；冻结 CSV 的 11 条 `limit` 条目中 9 条解除预算后可选、2 条（`10→17`、`17→9`）转为冲突。现有 static 结果须命名为"最多 4 条有向 shortcut 的 Algorithm 2 预算变体"；定向 level-2 运行只证明代码支持该层，不证明正式配置执行了所有符合条件的层级插入。保留现有配置与负结果即可，不要求新增实验。
 - 证据：`test_insertion.py` 5 项测试（本次复跑全部 OK，含 level-2 唯一选中）；冻结配置（两应用各 4 条 level-1：27→36、35→28、36→27、28→35；全部 level-2 候选 below_threshold/limit）；定向运行实际承载（relay frames>0、beats>0、排空）。
 - 类型：源码直接证明 + 历史运行证据。仅凭离线生成配置不构成实际承载证据（已分列）。

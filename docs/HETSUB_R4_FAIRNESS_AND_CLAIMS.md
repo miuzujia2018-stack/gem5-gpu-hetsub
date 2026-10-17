@@ -8,6 +8,7 @@
 - 本次新增三项**文档精度 P2**（见第 3 节 F-R4-01/F-R4-02/F-R4-03），均不改变任何定性结论。
 - **F1（用户 20261017 独立审查，`docs/HETSUB_READONLY_REVIEW_20261017.md`，本次离线复算确认）**：论文 p.3138 Algorithm 2 无全局 limit；实现 `insert_shortcuts.py:95-96` 在达到 `--limit=4`（`run_comparison_campaign.sh:31`）时跳过候选。复用两个现有 pilot profile、阈值与冲突规则不变：limit=4 → 每应用 4 条 level-1（即冻结配置）；limit=100 → 4 + 9 条 level-2 = 13。冻结 CSV 有 11 条 `limit` 拒绝条目，解除预算后 9 条可选、2 条（`10→17`、`17→9`）转为冲突。因此现有 static 结果须命名为"最多 4 条有向 shortcut 的 Algorithm 2 预算变体"，不能称未截断 Algorithm 2 的完整复现；static 负结果不能概括为论文完整 long-link 策略的负结果。这是主张范围条件（P1 级完整复现/比较主张），不是数据路径正确性缺陷，不触发重跑或调参。
 - **证据基础（措辞澄清）**：本轮为文档一致性复核——核对 GitHub 提交、R4 三份报告与历史审查记录，并复跑既有离线脚本（verify 门禁、`test_insertion.py`、`check_dependencies.py`、`validate_network.py`）；源码 `file:line` 锚点沿用更早审查的直接读取结果，本轮未重读全部源码、未运行仿真。因此本轮结论不能表述为新一轮完整独立 Code Review。用户随后从 GitHub 独立读取冻结提交 `a90c04ca` 的实际源码（`HetSub.py`、`HetSubPolicy.hh`、`Router.cc`、`HetSubRelay.cc`、`insert_shortcuts.py`），确认既有锚点，并触发 F-R4-03 修正。
+- **命名同步已完成**：正式结果文档 `docs/COMPARISON_10C_RESULTS.md` 的 static 条目统一为 `HetSub static-4`，完成度说明明确全局 `--limit=4` 预算与每源路由器至多一个出向 shortcut（`Router.hh:682-683`）；无数据、统计或性能结果改动。
 - 程序性上报：R4 目标文件缺失（见方法描述文档第 0 节）。
 - 裁定：**PASS（含 P2 精度注记）→ R4-DOC CLOSED / CORE FREEZE RETAINED**。按 20261017 独立审查的三维度口径：论文复现完整性 CONDITIONAL（F1 命名条件）；算法与实现正确性 PASS（限冻结配置及已验证范围）；性能基准资格 CONDITIONAL，按 static-4 命名与适配披露后 PASS。负结果不是复现失败，CONDITIONAL 是主张范围条件，不据此启动开发、重建或重跑。
 
@@ -42,4 +43,4 @@
 
 **可发表**：机制逐项已实现并在实际数据路径生效（含已标注近似）；当前平台/负载下方法劣于 XY 基线（负结果）；负载局部性不满足方法前提（可复现几何距离与占比）；PG 状态机与成本记账正确但净能量未知；128/56 仅内部链路预算近似。比较条目须分列命名：同仓 off/XY、HetSub dual（披露 F2 拥塞口径与 ordered-vnet 方向差异）、HetSub static-4（披露 F1 预算与 3/4-cycle 传播时序）。
 
-**不可过度延伸**：原文性能数值（38%/58%/16%）；面积/功耗/时序等价；拥塞定义与原文等价；每节点 ≤2 长程链路上限；把现有 static 结果称为未截断 Algorithm 2 的完整复现（须按"最多 4 条有向 shortcut 的 Algorithm 2 预算变体"命名，F1）；把 13 条离线可选链路当作已验证的运行或性能结果；pilot→正式的同定义命中率；任何"主因"因果分解；128-cycle 解释为状态陈旧度上限（实为相邻采样的最小间隔，F2）。
+**不可过度延伸**：原文性能数值（38%/58%/16%）；面积/功耗/时序等价；拥塞定义与原文等价；每节点 ≤2 长程链路上限（且每源路由器至多一个出向 shortcut，`Router.hh:682-683`，不能声称覆盖论文允许的全部链路组合）；把现有 static 结果称为未截断 Algorithm 2 的完整复现（须按"最多 4 条有向 shortcut 的 Algorithm 2 预算变体"命名，F1）；把 13 条离线可选链路当作已验证的运行或性能结果；pilot→正式的同定义命中率；任何"主因"因果分解；128-cycle 解释为状态陈旧度上限（实为相邻采样的最小间隔，F2）。
