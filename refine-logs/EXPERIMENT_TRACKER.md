@@ -98,7 +98,7 @@
 ### E1.2 — Baseline 正式综合（PASS，除 WNS FAIL）
 
 - 2026-10-18，RTL commit `c8cc0806`。
-- 命令：`yosys syn/syn_baseline.ys`（log：`rtl/syn/log_baseline.txt`）；`sta -no_splash -exit syn/sta_baseline.tcl`。
+- 命令：`yosys syn/syn_baseline.ys`（log：`rtl/syn/log_baseline.txt`）；`sta -no_splash -exit syn/sta_baseline.tcl`（原始日志：`rtl/syn/log_sta_baseline.txt`，2026-10-18 重跑复现 -6.23）。
 - 工具/库/约束：Yosys 0.70+157 + OpenSTA 3.1.0；Nangate45 typ（pinned `pdk/Nangate45_typ.lib`，SHA `2efd0b32…5895`；Yosys 用其派生副本 `pdk/Nangate45_typ_yosys.lib`，SHA `55b248d6…38d9`）；1.0 ns（1 GHz）SDC；buffer 建模为 flops（无 blackbox）。
 - 门：完全解析设计（无 unknown-area/行为单元）PASS；无 latch（0 `proc_dlatch`）PASS；memory 非零（无 blackbox，buffer 即 flop 阵列）PASS；WNS ≥ 0 **FAIL（-6.2300）**，保留不调约束。
 - 面积（µm²，top `baseline_router`）：Total 65587.0880，其中时序单元 31973.2000（48.75%）。
@@ -111,7 +111,7 @@
 ### E3.1 — HetSub top 正式综合（PASS，除 WNS FAIL）
 
 - 2026-10-18，RTL commit `c8cc0806`。
-- 命令：`yosys syn/syn_hetsub.ys`（log：`rtl/syn/log_hetsub.txt`）；`sta -no_splash -exit syn/sta_hetsub.tcl`。
+- 命令：`yosys syn/syn_hetsub.ys`（log：`rtl/syn/log_hetsub.txt`）；`sta -no_splash -exit syn/sta_hetsub.tcl`（原始日志：`rtl/syn/log_sta_hetsub.txt`，2026-10-18 重跑复现 -3.12）。
 - 工具/库/约束：与 E1.2 完全相同（同库、同 1.0 ns 约束、同 buffer 建模、同 `proc; opt -noff; techmap; dfflibmap; abc` flow）。
 - 门：完全解析设计 PASS；无 latch PASS；memory 非零 PASS；核心模块（select_pg、bypass、relay_tx/rx）均在单一 top `hetsub_tile_top` 内 PASS；WNS ≥ 0 **FAIL（-3.1200）**，保留。
 - 面积（µm²，top `hetsub_tile_top`）：Total 59925.0120，其中时序单元 29579.2000（49.36%）。
@@ -119,7 +119,7 @@
 
 ### E3.2 — 面积归属审计（PASS）
 
-- 2026-10-18。两设计 `sum(items) + Other = Total`，Other 均为 0.0000；无重复计数（每列取该 top 内层级面积，rr_arb 实例按所在分配器归属）。
+- 2026-10-18。两设计 `sum(items) + Other = Total`，Other 均为 0.0000；无重复计数（每列取该 top 内层级面积，rr_arb 实例按所在分配器归属）。口径限定：Other=0 只证明已建模模块的映射单元归属完整，不证明系统所需全部硬件模块已建模。
 - 实例计数（由门级网表模块体解析）：Baseline rr_arb W=10 ×5（vc_alloc）、W=5 ×5（sw_alloc）；HetSub L 侧 rr_arb W=3 ×3（vc_alloc）+ ×3（sw_alloc），M 侧同 Baseline（W=10 ×5、W=5 ×5）。
 - 口径限制（如实记录）：面积来自 Yosys `stat -liberty` 的完整层级设计；WNS 来自 `fix_ports.py` 修复端口名后的可链接子集——abc 生成单元的端口名按 abc 节点命名，仅唯一可恢复者被重命名，歧义实例无法链接（Baseline 2032、HetSub 1613 个实例被排除于 WNS 之外）。两设计的 WNS 均为可链接子集上的值。
 
@@ -136,3 +136,9 @@
 - 2026-10-18：复位装载非常量（`hop <= cfg_hop`）产生 `$_ALDFF_PP_`（库无匹配、面积未知且 OpenSTA 语法错误）→ `hetsub_bypass` 改为"已消耗计数 + 组合派生预算"，可观测行为不变（复位=满预算，grant=+1）。
 - 2026-10-18：`rr_arb` 动态 part-select（`$shiftx`）写出的网表端口名损坏且产生 latch → 改静态索引等价式（纯比较器、无 latch），功能测试仍全部 PASS。
 - 2026-10-18：WNS 失败（-6.2300 / -3.1200）保留为 FAIL，不为通过门而调约束或反复调参。
+- 2026-10-18（独立审查后，面积数值不变，口径收窄）：Table 3 表述改为"代表性 RTL tile macro 的 same-flow standard-cell mapping area"；1.0 ns SDC 仅用于 OpenSTA 检查，不是已达成的映射时序目标，故不得称"1 GHz 实现面积"。
+- 2026-10-18（独立审查 F1）：`rc_mono` 是 N/E/local 单调简化的面积代理，不等于 gem5 `HetSubPolicy.hh::Geometry::next()` 的 Hilbert RC；不声称已测得忠实 Hilbert 路由硬件面积。
+- 2026-10-18（独立审查 F2）：`hetsub_tile_top` 是结构容器——tx/rx 直连、bypass 独立、`sel`/`m_enable` 未反馈、`cong` 为外部输入；功能门支持模块级定向行为，不证明 top 与 gem5 实现等价。
+- 2026-10-18（独立审查 F3）：每 tile 各含 1 TX/1 RX/1 bypass；正式 static-4 只有 4 条有向 shortcut（8 个 relay 端点），×64 会计 128 端点；本表面积是 tile macro 面积，不是 static-4 网络平均每 tile 面积。`cfg_*` 为 top 输入，完整配置存储未建模。
+- 2026-10-18：WNS 为可链接子集值，不能证明完整设计时序收敛，也不用于时序优势比较。本轮面积估算结果冻结；不因代表性边界启动 RTL 重构、时序优化或 128/56。
+- 2026-10-18：LIC / Batch Scheduling 非 HetSub 核心机制，保留为模板兼容占位（`–`）。

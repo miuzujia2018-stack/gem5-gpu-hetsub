@@ -377,7 +377,11 @@ R2 全部条目完成；方法保持冻结。最终 Code Review 由用户执行�
 
 ## Table 3（same-口径 re-estimated，2026-10-18）
 
-面积单位 = 一个 HetSub tile；单位 µm²；≥4 位小数。分母为同 flow 重新综合的 Baseline（非原表 0.2303 mm²）。
+面积单位 = 一个代表性 HetSub RTL tile macro（L router + M router + relay + bypass + select/PG）；单位 µm²；≥4 位小数。分母为同 flow 重新综合的 Baseline（非原表 0.2303 mm²）。本表是 same-flow standard-cell mapping area，不是 1 GHz 已收敛的实现面积（1.0 ns SDC 只用于随后的 OpenSTA 检查，不作为映射时序目标）。
+
+> Same-flow standard-cell area estimates for representative RTL models, using Yosys and the Nangate45 typical library. The comparison excludes physical implementation and does not establish timing closure or full hardware equivalence to the gem5 HetSub model.
+
+LIC 与 Batch Scheduling 非 HetSub 核心机制，保留为模板兼容占位（`–`）；若本表仅比较 Baseline 与 HetSub，可去掉这两列。
 
 | Configuration | Flit Buffer/Logic | RC Unit | VA Unit | SA Unit | Crossbar | VC Table | Other | LIC | Batch Scheduling | HetSub modules | Total | Increase by % |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -391,11 +395,20 @@ HetSub modules 子列明细：`hetsub_select_pg` 117.0400 + `hetsub_bypass` 1064
 ### 一页口径说明
 
 1. **单一口径**：Nangate45 typ（pinned SHA `2efd0b32…5895`，Yosys 用其派生副本 SHA `55b248d6…38d9`），单一时钟约束 1.0 ns（1 GHz），buffer 建模为 flops（无 memory blackbox），Baseline 与 HetSub 完全同一 flow（`proc; opt -noff; techmap; dfflibmap; abc`）。不与 ALPHA 原表（45 nm、Synopsys DC）数值混用；原环境不可恢复（E0.1），故为"同口径 re-estimated"。
-2. **面积来源**：Yosys `stat -liberty` 单一层级 top（`baseline_router` / `hetsub_tile_top`）；分项取该 top 内层级面积，保留面积归属所需模块边界；不得把独立综合的子模块面积直接相加冒充 Total。`Other = Total − attributed`，两设计均为 0.0000（无重复计数）。
-3. **归属边界**：Flit Buffer/Logic = vc_buffer；RC = rc_xy（Baseline）/ rc_mono + rc_xy（HetSub）；VA = vc_alloc + 其内 rr_arb 实例；SA = sw_alloc + 其内 rr_arb 实例；Crossbar、VC Table 按实例所在 router 归属；HetSub 专属机制（select_pg、bypass、relay_tx/rx）单列，不隐藏在 Other。Algorithm 2 为离线计算（无面积），其配置存储/bypass 控制计入 bypass。
-4. **时序门（FAIL，保留）**：OpenSTA `report_wns`：Baseline **-6.2300**、HetSub **-3.1200**（1 GHz）。两设计均无 latch、无未映射单元、无 blackbox；WNS 失败不为降低面积而调约束。WNS 在 `fix_ports.py` 修复端口名后的可链接子集上测得（abc 单元端口名仅唯一可恢复者被重命名；歧义实例 Baseline 2032 / HetSub 1613 被排除于 WNS 之外）——面积不受此影响（来自完整层级设计）。
+2. **面积来源**：Yosys `stat -liberty` 单一层级 top（`baseline_router` / `hetsub_tile_top`）；分项取该 top 内层级面积，保留面积归属所需模块边界；不得把独立综合的子模块面积直接相加冒充 Total。`Other = Total − attributed`，两设计均为 0.0000——这只证明**已建模模块**的映射单元归属完整，不证明系统所需的全部硬件模块都已建模。
+3. **归属边界**：Flit Buffer/Logic = vc_buffer；RC = rc_xy（Baseline）/ rc_mono + rc_xy（HetSub）；VA = vc_alloc + 其内 rr_arb 实例；SA = sw_alloc + 其内 rr_arb 实例；Crossbar、VC Table 按实例所在 router 归属；HetSub 专属机制（select_pg、bypass、relay_tx/rx）单列，不隐藏在 Other。Algorithm 2 为离线计算（无面积）；bypass 列计入 grant 逻辑与消耗计数 FF，但 `cfg_en/cfg_out/cfg_hop` 是 top 级输入，完整配置存储未在 top 内建模。
+4. **时序门（FAIL，保留）**：OpenSTA `report_wns`：Baseline **-6.2300**、HetSub **-3.1200**（1 GHz）。两设计均无 latch、无未映射单元、无 blackbox；WNS 失败不为降低面积而调约束，也不用于比较两设计的时序优劣。WNS 在 `fix_ports.py` 修复端口名后的可链接子集上测得（abc 单元端口名仅唯一可恢复者被重命名；歧义实例 Baseline 2032 / HetSub 1613 被排除于 WNS 之外）——面积不受此影响（来自完整层级设计）。原始运行日志已提交：`rtl/syn/log_sta_baseline.txt`、`rtl/syn/log_sta_hetsub.txt`。
 5. **时序单元占比**：Baseline 48.75%（31973.2000）、HetSub 49.36%（29579.2000）。
 6. **负收益与边界**：HetSub tile 面积低于 Baseline 主要来自窄 flit（64-bit）buffer/crossbar 缩小；RC、VA、SA、VC Table 与专属机制均为净增加。此结果是同口径面积核算，不是原文 16% 面积节省的复现，也不构成性能优势主张。
 7. **可选项**：128/56 敏感性行未执行（不阻塞主表）。
 
-命令与报告路径：`yosys syn/syn_baseline.ys` → `rtl/syn/log_baseline.txt`；`yosys syn/syn_hetsub.ys` → `rtl/syn/log_hetsub.txt`；`sta -no_splash -exit syn/sta_baseline.tcl` / `syn/sta_hetsub.tcl`。RTL commit `c8cc0806`。功能门（6 项）2026-10-18 重跑全部 PASS。
+### 模型代表性边界（2026-10-18 独立审查确认，源码可核）
+
+以下边界不改变任何面积数值，但限定其科研口径：本表是代表性 RTL 模型的映射面积，不是完整 HetSub 片上网络已实现硬件的节省率。
+
+- **F1 — RC 非 Hilbert**：`hetsub_l_router.v` 为 3 端口（N、E、local），`rc_mono.v` 按 XY 坐标比较作单调转发、S/W 回退 local；gem5 的 `HetSubPolicy.hh::Geometry::next()` 沿 Hilbert 序列选下一跳，路径不总沿 N/E。故 RC Unit 列（68.6280 µm²）是面积估算用的简化路由逻辑，不是与 gem5 相同的 Hilbert RC 硬件面积。
+- **F2 — top 是结构容器，非端到端通路**：`hetsub_tile_top.v` 中 `u_tx` 取 L router 输出端口 0 直连 `u_rx`；`u_byp` 独立读取 M 输入并输出旁路结果，两条逻辑未在 top 内形成"序列化→旁路→反序列化"完整通路；`u_pg` 的 `sel`/`m_enable` 仅为 top 输出，未反馈到 L/M 数据通路；拥塞量 `cong` 是外部输入，不从该 top 内 buffer 提取。六项功能门支持各独立模块的定向功能，不证明整个 top 与 gem5 HetSub 实现等价。
+- **F3 — 每 tile 配置的代表性**：top 内每 tile 各含 1 TX + 1 RX + 1 bypass。当前正式 static-4 网络在 64 tile 中只部署 4 条有向 shortcut（共 8 个 relay 端点）；把本 tile 面积 ×64 相当于计入 128 个 relay 端点。因此 59925.0120 µm² 是该代表性 tile macro 的映射面积，不是已证明的 64-tile static-4 网络平均每 tile 面积。
+- **两个结论须区分**：gem5 HetSub 路由算法的功能复现资格不因本面积模型的简化而失效；-8.6329% 只能作为代表性 RTL 模型的同流程面积估算结果。
+
+命令与报告路径：`yosys syn/syn_baseline.ys` → `rtl/syn/log_baseline.txt`；`yosys syn/syn_hetsub.ys` → `rtl/syn/log_hetsub.txt`；`sta -no_splash -exit syn/sta_baseline.tcl` / `syn/sta_hetsub.tcl` → `rtl/syn/log_sta_baseline.txt` / `rtl/syn/log_sta_hetsub.txt`（2026-10-18 重跑复现 -6.23 / -3.12）。RTL commit `c8cc0806`。功能门（6 项）2026-10-18 重跑全部 PASS。本轮面积估算结果冻结：不因代表性边界而重构 RTL、优化时序或执行 128/56。
