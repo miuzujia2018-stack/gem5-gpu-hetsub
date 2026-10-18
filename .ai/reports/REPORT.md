@@ -414,3 +414,26 @@ HetSub modules 子列明细：`hetsub_select_pg` 117.0400 + `hetsub_bypass` 1064
 命令与报告路径：`yosys syn/syn_baseline.ys` → `rtl/syn/log_baseline.txt`；`yosys syn/syn_hetsub.ys` → `rtl/syn/log_hetsub.txt`；`sta -no_splash -exit syn/sta_baseline.tcl` / `syn/sta_hetsub.tcl` → `rtl/syn/log_sta_baseline.txt` / `rtl/syn/log_sta_hetsub.txt`（2026-10-18 重跑复现 -6.23 / -3.12）。RTL commit `c8cc0806`。功能门（6 项）2026-10-18 重跑全部 PASS。本轮面积估算结果冻结：不因代表性边界而重构 RTL、优化时序或执行 128/56。
 
 - 2026-10-18 最终复核（GOAL-HS-R4）：**PASS / STOP / FREEZE**。提交 `05e3529f` 的差分与远端文件内容核对通过（仅 2 文件、+3/-2 行，无功能代码改动，面积与 WNS 数值未变，子仓指针未变），两项 P2 已落实，维持 R4-DOC CLOSED / CORE FREEZE RETAINED。三类证据口径保持分离：gem5 功能复现（冻结功能与机制证据）、RTL 面积估算（代表性模型同流程映射 -8.6329%）、RTL 时序（无完整设计收敛证明）。非阻塞遗留：`rtl/src/hetsub_tile_top.v` 端口声明前仍保留 `// Static config registers (Algorithm 2 storage)`（旧描述），不另开修复轮次，后续编辑该文件时顺手清理。最终复核为远端只读检查，未重跑工具链。
+
+### 面积主张最终裁定（2026-10-18）
+
+本实验**不能**支持"HetSub 真实硬件比传统 XY 路由器节省面积"这一结论。根本原因不是综合工具算错，而是被比较的两个硬件模型不具备充分的功能等价性与资源公平性：
+
+| 问题 | 严重程度 | 影响 |
+|---|---|---|
+| Baseline（单个 128-bit 全 router，5 端口/2 VC/DEPTH 4）与 HetSub tile（L 3 端口/1 VC/128-bit + M 5 端口/2 VC/64-bit beat + relay + bypass + select/PG）结构不等价 | 高 | 无法直接归因面积优势 |
+| Line 侧 RC 是简化单调 XY（`rc_mono`），非忠实 Hilbert RC | 高 | 少计算了部分真实路由机制 |
+| 两套网络未构成完整端到端硬件通路（`sel`/`m_enable` 未反馈、`cong` 外部输入） | 高 | 不能代表完整 HetSub 实现 |
+| 配置存储未完整建模（`cfg_*` 为 top 输入） | 中 | 面积核算不完整 |
+| STA 大量端口未链接（Warning 201） | 高 | 完整时序有效性无法确认 |
+
+归属复核：-8.6329% 的减少**全部**来自窄路径效应——仅 Flit Buffer/Logic（-18.3186%）与 Crossbar（-13.4360%）两列下降，RC +56.3636%、VA +4.0387%、SA +20.9690%、VC Table +24.2931%、HetSub modules（0 → 4416.6640）均为净增加。窄路径是窄 Mesh 子网这一性能/功耗设计的结构性副作用，不是方法的面积设计目标；其序列化代价（relay tx/rx 合计 3235.3580 µm²）已计入，但不足以改变归属结论。因此 -8.6329% 只能作为两个指定代表性 RTL 模型的映射面积差异保留，不能作为完整 HetSub 架构面积节省的证据。
+
+两条证据链须分开：
+
+| 证据链 | 目标 | 当前状态 |
+|---|---|---|
+| gem5 功能复现 | 路由、选网、长程链路、背压、数据交付等机制是否正确实现 | 已验证范围内 PASS，可作有范围限制的比较基准；不因 RTL 面积模型简化而失效 |
+| RTL 硬件面积比较 | 完整 HetSub 架构是否真的比传统网络使用更少的标准单元面积 | 证据不足，不能宣称面积优势得到验证 |
+
+R4 冻结维持（其声明已覆盖上述局限），但 R4 的 PASS 不可解读为"HetSub 完整硬件面积比较通过"。只有当论文要正式提出面积主张时，才需要建立完整且公平的 RTL 对照（忠实路由逻辑、端到端连接、配置存储、一致的资源和性能约束）；现阶段不启动，也不把 -8.6329% 作为主要科研成果。
