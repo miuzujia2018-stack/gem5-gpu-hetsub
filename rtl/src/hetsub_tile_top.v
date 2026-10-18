@@ -1,7 +1,7 @@
 // HetSub tile area top: one tile = L router + M router + NI relay (tx/rx) +
 // static long-link crossbar bypass + congestion sampling/hysteresis + PG state.
 // Structural container for same-flow synthesis; Algorithm 2 is offline (no area),
-// its config storage is the static cfg_* registers of the bypass.
+// its config storage is not modeled inside this top: cfg_* are top-level inputs.
 module hetsub_tile_top (
     input  wire clk,
     input  wire rst,
