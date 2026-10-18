@@ -412,3 +412,5 @@ HetSub modules 子列明细：`hetsub_select_pg` 117.0400 + `hetsub_bypass` 1064
 - **两个结论须区分**：gem5 HetSub 路由算法的功能复现资格不因本面积模型的简化而失效；-8.6329% 只能作为代表性 RTL 模型的同流程面积估算结果。
 
 命令与报告路径：`yosys syn/syn_baseline.ys` → `rtl/syn/log_baseline.txt`；`yosys syn/syn_hetsub.ys` → `rtl/syn/log_hetsub.txt`；`sta -no_splash -exit syn/sta_baseline.tcl` / `syn/sta_hetsub.tcl` → `rtl/syn/log_sta_baseline.txt` / `rtl/syn/log_sta_hetsub.txt`（2026-10-18 重跑复现 -6.23 / -3.12）。RTL commit `c8cc0806`。功能门（6 项）2026-10-18 重跑全部 PASS。本轮面积估算结果冻结：不因代表性边界而重构 RTL、优化时序或执行 128/56。
+
+- 2026-10-18 最终复核（GOAL-HS-R4）：**PASS / STOP / FREEZE**。提交 `05e3529f` 的差分与远端文件内容核对通过（仅 2 文件、+3/-2 行，无功能代码改动，面积与 WNS 数值未变，子仓指针未变），两项 P2 已落实，维持 R4-DOC CLOSED / CORE FREEZE RETAINED。三类证据口径保持分离：gem5 功能复现（冻结功能与机制证据）、RTL 面积估算（代表性模型同流程映射 -8.6329%）、RTL 时序（无完整设计收敛证明）。非阻塞遗留：`rtl/src/hetsub_tile_top.v` 端口声明前仍保留 `// Static config registers (Algorithm 2 storage)`（旧描述），不另开修复轮次，后续编辑该文件时顺手清理。最终复核为远端只读检查，未重跑工具链。

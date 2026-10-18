@@ -143,3 +143,4 @@
 - 2026-10-18：WNS 为可链接子集值，不能证明完整设计时序收敛，也不用于时序优势比较。本轮面积估算结果冻结；不因代表性边界启动 RTL 重构、时序优化或 128/56。
 - 2026-10-18：LIC / Batch Scheduling 非 HetSub 核心机制，保留为模板兼容占位（`–`）。
 - 2026-10-18（R4 独立审查 PASS，R4-DOC CLOSED / CORE FREEZE RETAINED）：P2-1 — E3.1 结论措辞收窄为"1 GHz 约束下可链接子集 STA 检查 FAIL，完整设计时序收敛未验证"（正式论文须用此限定）；P2-2 — `hetsub_tile_top.v` 头注释与报告口径对齐（cfg_* 为 top 输入）。两处均为措辞/注释一致性修正，不重开 RTL 开发，不改变任何面积或 WNS 数值，不触发重新综合。
+- 2026-10-18（R4 最终复核）：GOAL-HS-R4 **PASS / STOP / FREEZE**。提交 `05e3529f` 远端差分核对通过（仅 2 文件、+3/-2 行，无功能改动，数值未变）。非阻塞遗留：`hetsub_tile_top.v` 端口声明前 `// Static config registers (Algorithm 2 storage)` 为旧描述，不另开修复轮次，后续编辑该文件时顺手清理。R4 面积工作停止扩展，资源转向核心研究。
