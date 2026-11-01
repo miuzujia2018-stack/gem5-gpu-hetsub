@@ -16,7 +16,8 @@ from insert_shortcuts import hilbert_order
 
 def check(config):
     cfg = configparser.ConfigParser()
-    cfg.read(config)
+    # argparse passes a Path; configparser.read() rejects it before python 3.6.
+    cfg.read(str(config))
     net = 'system.ruby.network'
     mode = cfg.get(net, 'het_mode')
     if mode not in ('dual', 'static'):

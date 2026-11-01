@@ -7,6 +7,7 @@ The result is a frozen configuration, not an online reconfiguration policy.
 import argparse
 import csv
 import json
+import os
 from pathlib import Path
 
 
@@ -127,8 +128,12 @@ def main():
                 raise ValueError('invalid profile row')
             profile[s, d] = profile.get((s, d), 0) + count
     links, audit = insert(profile, args.threshold_bytes, args.limit)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(dict(links=links), indent=2) + '\n')
+    # pathlib mkdir(parents=/exist_ok=) only exists on python >= 3.5
+    # (container: 3.4.3); os.makedirs has had exist_ok since 3.2.
+    os.makedirs(str(args.output.parent), exist_ok=True)
+    # pathlib write_text() only exists on python >= 3.5 (container: 3.4.3).
+    with open(str(args.output), 'w') as stream:
+        stream.write(json.dumps(dict(links=links), indent=2) + '\n')
     with args.output.with_suffix('.csv').open('w') as stream:
         writer = csv.DictWriter(stream,
             fieldnames=['level', 'src', 'dst', 'flow_bytes', 'reason'])

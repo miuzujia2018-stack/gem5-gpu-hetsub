@@ -13,11 +13,13 @@ def vnets_for_relay(cfg):
 
 def validate(directory, case):
     root = pathlib.Path(directory)
-    logs = (root / 'stdout.log').read_text() + (root / 'stderr.log').read_text()
+    # pathlib read_text() only exists on python >= 3.5; the unified
+    # container ships 3.4.3, so read through plain open() on str paths.
+    logs = open(str(root / 'stdout.log')).read() + open(str(root / 'stderr.log')).read()
     assert 'Network Tester completed simCycles' in logs, 'abnormal exit'
     assert not re.search(r'panic:|fatal:|Assertion|NI-WARN|NI-ERROR|deadlocked',
                          logs, re.I), 'runtime error or delivery fallback'
-    raw = (root / 'stats.txt').read_text()
+    raw = open(str(root / 'stats.txt')).read()
     assert raw.count('Begin Simulation Statistics') == 1, 'ambiguous stats block'
     values = {}
     for line in raw.splitlines():
@@ -28,7 +30,7 @@ def validate(directory, case):
             except ValueError:
                 pass
     cfg = configparser.ConfigParser()
-    cfg.read(root / 'config.ini')
+    cfg.read(str(root / 'config.ini'))
     prefix = 'system.ruby.network.'
     injected = values[prefix + 'packets_injected']
     received = values[prefix + 'packets_received']
