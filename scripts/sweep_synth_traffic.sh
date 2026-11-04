@@ -1,4 +1,10 @@
 #!/bin/bash
+# Fail closed outside the unified server container.  The dispatcher exports
+# GEM5_ENV_PROFILE when it executes this entrypoint on the server.
+if [[ -z "${GEM5_ENV_PROFILE:-}" ]]; then
+    printf 'ERROR: refusing local execution; use /home/siat/gem5-unified/scripts/server-build-and-test.sh hetsub-upper test|simulate\n' >&2
+    exit 78
+fi
 # sweep_synth_traffic.sh — Sweep injection rates for 3 traffic patterns
 #
 # Usage: ./scripts/sweep_synth_traffic.sh [--sim-cycles 100000] [--random_seed 42]
