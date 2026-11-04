@@ -1,6 +1,12 @@
 #!/bin/bash
 set -Eeuo pipefail
 
+# Fail closed outside the unified server container.  The dispatcher exports
+# GEM5_ENV_PROFILE when it executes this entrypoint on the server.
+if [[ -z "${GEM5_ENV_PROFILE:-}" ]]; then
+    printf 'ERROR: refusing local execution; use /home/siat/gem5-unified/scripts/server-build-and-test.sh hetsub test|simulate\n' >&2
+    exit 78
+fi
 export CUDAHOME=/usr/local/cuda/cuda
 export PATH=/usr/local/cuda/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export LD_LIBRARY_PATH=/usr/local/cuda/cuda/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
